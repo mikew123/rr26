@@ -1,0 +1,270 @@
+<?xml version="1.0" ?>
+<robot name="roborama25" xmlns:xacro="http://ros.org/wiki/xacro">
+
+<!-- Roborama robot model, all joints fixed (even wheels), no camera, link names match udemy_ws turtlebot3 6can -->
+  <!-- Init colour -->
+  <material name="black">
+      <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="dark">
+    <color rgba="0.3 0.3 0.3 1.0"/>
+  </material>
+
+  <material name="light_black">
+    <color rgba="0.4 0.4 0.4 1.0"/>
+  </material>
+
+  <material name="blue">
+    <color rgba="0.0 0.0 0.8 1.0"/>
+  </material>
+
+  <material name="green">
+    <color rgba="0.0 0.8 0.0 1.0"/>
+  </material>
+
+  <material name="grey">
+    <color rgba="0.5 0.5 0.5 1.0"/>
+  </material>
+
+  <material name="orange">
+    <color rgba="1.0 0.4235 0.0392 1.0"/>
+  </material>
+
+  <material name="brown">
+    <color rgba="0.8706 0.8118 0.7647 1.0"/>
+  </material>
+
+  <material name="red">
+    <color rgba="0.8 0.0 0.0 1.0"/>
+  </material>
+
+  <material name="white">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+  </material>
+
+  <link name="map"/>
+
+  <!-- map -> odom actively managed by navigation2, this is temporary -->
+  <joint name="odom_joint" type="fixed">
+    <parent link="map"/>
+    <child link="odom" />
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="odom"/>
+
+  <!-- odom -> base_footprint actively managed by wheels node -->
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="odom"/>
+    <child link="base_footprint" />
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="base_footprint"/>
+
+  <joint name="base_link_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link" />
+    <origin xyz="0 0 0.042" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.015" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.005" radius="0.180"/>
+      </geometry>
+      <material name="orange"/>
+    </visual>
+  </link>
+
+  <!-- <joint name="wheel_left_joint" type="continuous"> -->
+  <joint name="wheel_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="wheel_left_link"/>
+    <origin xyz="0 0.140 0" rpy="-1.57 0 0"/>
+    <!-- <axis xyz="0 0 1"/> -->
+  </joint>
+
+  <link name="wheel_left_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.020" radius="0.042"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+
+  <!-- <joint name="wheel_right_joint" type="continuous"> -->
+  <joint name="wheel_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="wheel_right_link"/>
+    <origin xyz="0 -0.140 0" rpy="-1.57 0 0"/>
+    <!-- <axis xyz="0 0 1"/> -->
+  </joint>
+
+  <link name="wheel_right_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.020" radius="0.042"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_link"/>
+    <origin xyz="-0.125 0 -0.035" rpy="0 0 0"/>
+  </joint>
+
+  <link name="caster_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.012"/>
+      </geometry>
+      <material name="white"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0.025" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.050" radius="0.020"/>
+      </geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0.055" rpy="0 0 0"/>
+  </joint>
+
+  <link name="imu_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.005"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <!-- RPLidar C1 direction must be 180 deg to scan correctly -->
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="0 0 0.115" rpy="0 0 3.1416"/>
+  </joint>
+
+  <link name="lidar_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.020" radius="0.025"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <!-- 90 deg tof arrays are mounted at an angle -->
+  <joint name="tofL5L_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tofL5L_link"/>
+    <origin xyz="0.140 0.060 0.030" rpy="0 0 0.41"/>
+  </joint>
+
+  <link name="tofL5L_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.030" radius="0.020"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <joint name="tofL5R_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tofL5R_link"/>
+    <origin xyz="0.140 -0.060 0.030" rpy="0 0 -0.41"/>
+  </joint>
+
+  <link name="tofL5R_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.030" radius="0.020"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <joint name="tofL4_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tofL4_link"/>
+    <origin xyz="0.100 0 0.030" rpy="0 0 0"/>
+  </joint>
+
+  <link name="tofL4_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.005 0.025 0.025"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <joint name="tofRC_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tofRC_link"/>
+    <origin xyz="-0.040 0 0.085" rpy="0 0 3.1416"/>
+  </joint>
+
+  <link name="tofRC_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder length="0.005" radius="0.015"/>
+        </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+
+  <joint name="tofRL_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tofRL_link"/>
+    <origin xyz="-0.040 0 0.085" rpy="0 0 2.3"/>
+  </joint>
+
+  <link name="tofRL_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder length="0.005" radius="0.015"/>
+        </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <joint name="tofRR_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tofRR_link"/>
+    <origin xyz="-0.040 0 0.085" rpy="0 0 -2.3"/>
+  </joint>
+
+  <link name="tofRR_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder length="0.005" radius="0.015"/>
+        </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+</robot>
