@@ -1,11 +1,18 @@
 # DESCRIPTION
-This ROS2 code is for the ROBORAMA 2025 Indoor robot competition<br>
-The 2024 robot was stripped down and the motors, servos, camera, 3 VL53L5 sensors, IMU were reused as well as the power, wheel and sensor modules<br>
-New wheels and a RPLidar C1 and another VL53L5 sensor and a VL53L4 sensor were added<br>
-It has a new plywood base which is about 16" diameter (larger than my 3D printer can make)<br>
-I am reusing and updating the wheel and sensor ROS2 modules<br>
+This design is for the ROBORAMA 2026 Indoor robot competition<br>
+The 2025 robot hardware and code will be used with modifications.<br>
+The 2025 ROS based code will be reused, the NAV2 navigation code needs help to allow the robot to move faster.<br>
+## Hardware modifications
+- The rear IR sensor array and front TOF sensor will be removed
+- The LIDAR will be lowered so that it can detect the cans on the field  as well as the walls (the 2025 LIDAR only detected the walls for localization and not the cans), this replaces the front TOF sensor and rear sensors.
+- The Raspberry Pi Screen will be removed
+- The power module will be improved with better regulators
+- The wheel controller module will be moved to make room for a WIFI router in the back
+- The caster mount will be filled with lead instead of pennys for for weight and stability
+- The can detect switch (or some other sensor) will be mounted on the new can catch 
+- A new  3D printed can catch will help keep the cans upright after grabbing - the 2025 design allowed the cans to slide a bit under the chassis
 
-## Pictures:
+## 2025 Robot Pictures Before Modifications:
 Top of robot:<br>
 ![Robot top](support/RoboRama25_Robot_top_pic.jpg) <br>
 Bottom of robot:<br>
