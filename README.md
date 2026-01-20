@@ -18,6 +18,9 @@ Top of robot:<br>
 Bottom of robot:<br>
 ![Robot top](support/RoboRama25_Robot_bot_pic.jpg) <br>
 
+## Code modifications
+- Create a new "scan_obj" topic that blocks the scan rays where the can is detected by the camera. This allows the LIDAR to replace the front TOF sensor when approaching the can.
+
 # Documentation
 ## Block diagram of electronics:
 The Rasberry Pi does not supply power directly to any of the peripherals<br>
