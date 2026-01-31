@@ -27,13 +27,12 @@ thresholds = [
 #    (30, 100, -64, -8, -32,  32),  #1 generic_green_thresholds
 #    ( 0,  30,   0, 64,-128,   0),  #2 blue
 #    (0, 100,  20,127,  0, 100),    #3 old 3M orange can??
-    (0, 100,  15, 127, 30, 127), #4 new DUCK_orange_thresholds
-#    (0, 100,  20, 127, 30, 127), #5
-    (0, 100,  25, 127, 30, 127), #5
-#    (0, 100,  30, 127, 30, 127), #6
-    (0, 100,  35, 127, 30, 127), #7
-#    (0, 100,  40, 127, 30, 127), #8
-    (0, 100,  45, 127, 0, 127), #9
+    (0, 100,  15, 127, -128, 127), #4 new DUCK_orange_thresholds
+    (0, 100,  25, 127, -128, 127), #5
+    (0, 100,  30, 127, -128, 127), #6
+    (0, 100,  35, 127, -128, 127), #7
+    (0, 100,  40, 127, -128, 127), #8
+    (0, 100,  45, 127, -128, 127), #9
 ]
 
 sensor.reset()
@@ -131,8 +130,8 @@ while True:
             #[thresholds[5], thresholds[4]],
             [thr],
             # Filter out small objects
-            pixels_threshold=600, #1000,
-            area_threshold=700, #700 for 9ft #1000,
+            pixels_threshold=1000,
+            area_threshold=1000,
             merge=False,
             #roi=roi,
             threshold_cb=blob_cb, # Other tests

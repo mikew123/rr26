@@ -29,11 +29,11 @@ thresholds = [
 #    (0, 100,  20,127,  0, 100),    #3 old 3M orange can??
     (0, 100,  15, 127, 30, 127), #4 new DUCK_orange_thresholds
 #    (0, 100,  20, 127, 30, 127), #5
-    (0, 100,  25, 127, 30, 127), #5
+    (0, 100,  15, 127, 0, 127), #5
 #    (0, 100,  30, 127, 30, 127), #6
-    (0, 100,  35, 127, 30, 127), #7
+#    (0, 100,  35, 127, 30, 127), #7
 #    (0, 100,  40, 127, 30, 127), #8
-    (0, 100,  45, 127, 0, 127), #9
+#    (0, 100,  45, 127, 0, 127), #9
 ]
 
 sensor.reset()
@@ -62,7 +62,7 @@ blobArea = 0
 led_blue.on()
 
 def blob_cb(blob) :
-    global blobDist
+#    global blobDist
     global blobArea
     retVal = True
     pi = 3.14159265
@@ -98,12 +98,13 @@ def blob_cb(blob) :
     if math.fabs(1.0 - can_obj) > can_obj_tol :
         retVal = False
 
-    x = -int(imgMaxX/2) + blob.cx()
-    y = imgMaxY - blob.cy()
-    d = math.sqrt((y*y) + (x*x)/10)
-    if retVal == True :
-        if d < blobDist :  blobDist = d
+#    x = -int(imgMaxX/2) + blob.cx()
+#    y = imgMaxY - blob.cy()
+#    d = math.sqrt((y*y) + (x*x)/10)
+#    if retVal == True :
+#        if d < blobDist :  blobDist = d
 
+    # save can det with largest area ie closest can
     a = blob.area()/100
     if retVal == True :
         if a > blobArea : blobArea = a
@@ -125,14 +126,14 @@ while True:
     selectedObj=None
     for thr in thresholds :
         #print(f"{n=} {thr=}")
-        blobDist = 10000
+#        blobDist = 10000
         blobArea = 0
         blobs = img.find_blobs(
             #[thresholds[5], thresholds[4]],
             [thr],
             # Filter out small objects
-            pixels_threshold=600, #1000,
-            area_threshold=700, #700 for 9ft #1000,
+            pixels_threshold=500, #1000,
+            area_threshold=600, #700 for 9ft #1000,
             merge=False,
             #roi=roi,
             threshold_cb=blob_cb, # Other tests
@@ -151,12 +152,12 @@ while True:
                 # These values depend on the blob not being circular
                 obj["x"] = -int(imgMaxX/2) + blob.cx()
                 obj["y"] = imgMaxY - blob.cy()
-                obj["a"] = blob.area()/100
+                obj["a"] = a #blob.area()/100
                 obj["n"] = n
 
                 # calc distance and height of object
                 m = blob.major_axis_line()
-                obj["d"] = abs(math.atan2((m[3]-m[1]), (m[2]-m[0])))
+#                obj["d"] = abs(math.atan2((m[3]-m[1]), (m[2]-m[0])))
                 obj["h"] = int(math.sqrt(math.pow((m[0]-m[2]),2)+math.pow((m[1]-m[3]),2)))
 
                 obj["maj"] = m
@@ -169,6 +170,7 @@ while True:
                 if selectedObj==None :
                     selectedObj = obj
                 elif obj["a"] > selectedObj["a"] :
+                    # select largest can (closest)
                     selectedObj = obj
         n+=1
 

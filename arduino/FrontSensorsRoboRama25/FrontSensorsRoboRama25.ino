@@ -19,6 +19,11 @@
   mrw 3/8/2025 Connect Wire1(2,3) to I2C connector and INA228 code
   mrw 3/9/2025 Add VL53L4Cx and BNO055 code
   mrw 4/12/2025 Added rear range sensors OPT3101
+
+  mrw 1/31/2026 Copied 2025 file for RoboRama2026
+    remove TOF Vl53L4Cx and rear OPT sensors
+    disable IMU sensor (maybe enable later but leave the code)
+
 */
 
 #include <Wire.h>
@@ -26,14 +31,14 @@
 #include <Adafruit_INA228.h>
 Adafruit_INA228 ina228 = Adafruit_INA228();
 
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
-Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28, &Wire1);
+// #include <Adafruit_Sensor.h>
+// #include <Adafruit_BNO055.h>
+// #include <utility/imumaths.h>
+// Adafruit_BNO055 bno = Adafruit_BNO055(55, 0x28, &Wire1);
 
-// This lib also works with VL53L4CX 
-#include "SparkFun_VL53L1X.h" //Click here to get the library: http://librarymanager/All#SparkFun_VL53L1X
-SFEVL53L1X frontRangeSensor(Wire1);
+// // This lib also works with VL53L4CX 
+// #include "SparkFun_VL53L1X.h" //Click here to get the library: http://librarymanager/All#SparkFun_VL53L1X
+// SFEVL53L1X frontRangeSensor(Wire1);
 
 #include <SparkFun_VL53L5CX_Library.h> //http://librarymanager/All#SparkFun_VL53L5CX
 // Create 3 sensors Left, Front, Right
@@ -43,11 +48,11 @@ SparkFun_VL53L5CX myImagerRL;
 SparkFun_VL53L5CX myImagerRR;
 VL53L5CX_ResultsData measurementData; // Result data class structure, 1356 byes of RAM
 
-// Rear range sensors FOV 50+60+50
-#include "OPT3101.h"
-OPT3101 opt3101Sensors;
-uint16_t opt3101SensorsAmplitudes[3];
-int16_t opt3101SensorsDistances[3];
+// // Rear range sensors FOV 50+60+50
+// #include "OPT3101.h"
+// OPT3101 opt3101Sensors;
+// uint16_t opt3101SensorsAmplitudes[3];
+// int16_t opt3101SensorsDistances[3];
 
 
 int imageResolution = 0; //Used to pretty print output
@@ -140,150 +145,150 @@ void getInaSensorData(){
   }
 }
 
-///////////////////////////////////////////////////////////////
-// BNO055 IMU sensor
-/* Set the delay between fresh samples */
-#define BNO055_SAMPLERATE_HZ (50)
-#define BNO055_CALRATE_HZ (1)
-int imuDataRateMs = 0;
-int imuCalRateMs = 0;
-uint32_t imu_last_millis = 0;
-uint32_t cal_last_millis = 0;
+// ///////////////////////////////////////////////////////////////
+// // BNO055 IMU sensor
+// /* Set the delay between fresh samples */
+// #define BNO055_SAMPLERATE_HZ (50)
+// #define BNO055_CALRATE_HZ (1)
+// int imuDataRateMs = 0;
+// int imuCalRateMs = 0;
+// uint32_t imu_last_millis = 0;
+// uint32_t cal_last_millis = 0;
 
-void cfgImuDataRate(int hz) {
-  if (hz>0 && hz<=50) imuDataRateMs = 1000/hz;
-  else imuDataRateMs = 0;
-  imu_last_millis = millis();
-}
-void cfgImuCalRate(int hz) {
-  if (hz>0 && hz<=10) imuCalRateMs = 1000/hz;
-  else imuCalRateMs = 0;
-  cal_last_millis = millis();
-}
+// void cfgImuDataRate(int hz) {
+//   if (hz>0 && hz<=50) imuDataRateMs = 1000/hz;
+//   else imuDataRateMs = 0;
+//   imu_last_millis = millis();
+// }
+// void cfgImuCalRate(int hz) {
+//   if (hz>0 && hz<=10) imuCalRateMs = 1000/hz;
+//   else imuCalRateMs = 0;
+//   cal_last_millis = millis();
+// }
 
-void initImuSensor(){
-  /* Initialise the sensor */
-  if(!bno.begin( OPERATION_MODE_NDOF)) {
-    /* There was a problem detecting the BNO055 ... check your connections, freezing!! */
-    Serial.println("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR, freezing!");
-    while(1);
-  }
+// void initImuSensor(){
+//   /* Initialise the sensor */
+//   if(!bno.begin( OPERATION_MODE_NDOF)) {
+//     /* There was a problem detecting the BNO055 ... check your connections, freezing!! */
+//     Serial.println("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR, freezing!");
+//     while(1);
+//   }
 
-  // Write calibration data to jump start IMU operation
-  uint8_t imuCalData[22] = {222,255,251,255,238,255,110,0,117,1,51,1,255,255,254,255,255,255,232,3,17,3};
-  bno.setSensorOffsets(imuCalData);
+//   // Write calibration data to jump start IMU operation
+//   uint8_t imuCalData[22] = {222,255,251,255,238,255,110,0,117,1,51,1,255,255,254,255,255,255,232,3,17,3};
+//   bno.setSensorOffsets(imuCalData);
 
-  bno.setExtCrystalUse(true);
+//   bno.setExtCrystalUse(true);
 
-  cfgImuDataRate(BNO055_SAMPLERATE_HZ);
-  cfgImuCalRate(BNO055_CALRATE_HZ);
+//   cfgImuDataRate(BNO055_SAMPLERATE_HZ);
+//   cfgImuCalRate(BNO055_CALRATE_HZ);
 
-  imu_last_millis = millis();
-  cal_last_millis = millis();
-}
+//   imu_last_millis = millis();
+//   cal_last_millis = millis();
+// }
 
-void getImuSensorData(void){
-  if (imuDataRateMs==0) return;
-  if((millis()-imu_last_millis)>=imuDataRateMs) {
-    imu_last_millis = millis();
+// void getImuSensorData(void){
+//   if (imuDataRateMs==0) return;
+//   if((millis()-imu_last_millis)>=imuDataRateMs) {
+//     imu_last_millis = millis();
 
-    /* Get a new sensor event */
-    sensors_event_t angVelocityData, linearAccelData;
-    bool a = bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
-    bool v = bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
-    imu::Quaternion quat = bno.getQuat();
+//     /* Get a new sensor event */
+//     sensors_event_t angVelocityData, linearAccelData;
+//     bool a = bno.getEvent(&angVelocityData, Adafruit_BNO055::VECTOR_GYROSCOPE);
+//     bool v = bno.getEvent(&linearAccelData, Adafruit_BNO055::VECTOR_LINEARACCEL);
+//     imu::Quaternion quat = bno.getQuat();
 
-    Serial.print("IMU ");
-    Serial.print(millis());Serial.print(" ");
-    Serial.print(angVelocityData.acceleration.x,4); Serial.print(" ");
-    Serial.print(angVelocityData.acceleration.y,4); Serial.print(" ");
-    Serial.print(angVelocityData.acceleration.z,4); Serial.print(" ");
-    Serial.print(linearAccelData.acceleration.x,4); Serial.print(" ");
-    Serial.print(linearAccelData.acceleration.y,4); Serial.print(" ");
-    Serial.print(linearAccelData.acceleration.z,4); Serial.print(" ");
-    Serial.print(quat.w(), 4); Serial.print(" ");
-    Serial.print(quat.x(), 4); Serial.print(" ");
-    Serial.print(quat.y(), 4); Serial.print(" ");
-    Serial.print(quat.z(), 4); Serial.println(""); // end line
-  }
-}
+//     Serial.print("IMU ");
+//     Serial.print(millis());Serial.print(" ");
+//     Serial.print(angVelocityData.acceleration.x,4); Serial.print(" ");
+//     Serial.print(angVelocityData.acceleration.y,4); Serial.print(" ");
+//     Serial.print(angVelocityData.acceleration.z,4); Serial.print(" ");
+//     Serial.print(linearAccelData.acceleration.x,4); Serial.print(" ");
+//     Serial.print(linearAccelData.acceleration.y,4); Serial.print(" ");
+//     Serial.print(linearAccelData.acceleration.z,4); Serial.print(" ");
+//     Serial.print(quat.w(), 4); Serial.print(" ");
+//     Serial.print(quat.x(), 4); Serial.print(" ");
+//     Serial.print(quat.y(), 4); Serial.print(" ");
+//     Serial.print(quat.z(), 4); Serial.println(""); // end line
+//   }
+// }
 
-void getImuCalStatus(void){
-  if (imuCalRateMs==0) return;
-  if((millis()-cal_last_millis)>=imuCalRateMs) {
-    cal_last_millis = millis();
-    uint8_t system, gyro, accel, mag;
-    system = gyro = accel = mag = 0;
-    bno.getCalibration(&system, &gyro, &accel, &mag);
+// void getImuCalStatus(void){
+//   if (imuCalRateMs==0) return;
+//   if((millis()-cal_last_millis)>=imuCalRateMs) {
+//     cal_last_millis = millis();
+//     uint8_t system, gyro, accel, mag;
+//     system = gyro = accel = mag = 0;
+//     bno.getCalibration(&system, &gyro, &accel, &mag);
 
-    Serial.print("CAL ");
-    Serial.print(system,DEC);Serial.print(" ");
-    Serial.print(gyro  ,DEC);Serial.print(" ");
-    Serial.print(accel ,DEC);Serial.print(" ");
-    Serial.print(mag   ,DEC);Serial.println();
-  }
-}
+//     Serial.print("CAL ");
+//     Serial.print(system,DEC);Serial.print(" ");
+//     Serial.print(gyro  ,DEC);Serial.print(" ");
+//     Serial.print(accel ,DEC);Serial.print(" ");
+//     Serial.print(mag   ,DEC);Serial.println();
+//   }
+// }
 
-/////////////////////////////////////////////////////////////////////////
-// VL53L4CX single point TOF sensor
-#define L4_DATA_RATE_HZ 10
-int l4DataPeriodMs = 0;
-void cfgL4DataRate(int hz){
-  if(hz>0 && hz<=10) l4DataPeriodMs = 1000/hz;
-  else l4DataPeriodMs = 0;
-}
-void initL4Sensor(void){
-  cfgL4DataRate(L4_DATA_RATE_HZ);
+// /////////////////////////////////////////////////////////////////////////
+// // VL53L4CX single point TOF sensor
+// #define L4_DATA_RATE_HZ 10
+// int l4DataPeriodMs = 0;
+// void cfgL4DataRate(int hz){
+//   if(hz>0 && hz<=10) l4DataPeriodMs = 1000/hz;
+//   else l4DataPeriodMs = 0;
+// }
+// void initL4Sensor(void){
+//   cfgL4DataRate(L4_DATA_RATE_HZ);
 
-  if (frontRangeSensor.begin() != 0) //Begin returns 0 on a good init
-  {
-    Serial.println("VL53L4CX sensor failed to begin. Please check wiring. Freezing...");
-    while (1);
-  }
-  Serial.println("VL53L4CX sensor online!");
+//   if (frontRangeSensor.begin() != 0) //Begin returns 0 on a good init
+//   {
+//     Serial.println("VL53L4CX sensor failed to begin. Please check wiring. Freezing...");
+//     while (1);
+//   }
+//   Serial.println("VL53L4CX sensor online!");
 
-  // Short mode max distance is limited to 1.3 m but has a better ambient immunity.
-  // Above 1.3 meter error 4 is thrown (wrap around).
-  //frontRangeSensor.setDistanceModeShort();
-  frontRangeSensor.setDistanceModeLong(); // default
+//   // Short mode max distance is limited to 1.3 m but has a better ambient immunity.
+//   // Above 1.3 meter error 4 is thrown (wrap around).
+//   //frontRangeSensor.setDistanceModeShort();
+//   frontRangeSensor.setDistanceModeLong(); // default
 
-  /*
-     * The minimum timing budget is 20 ms for the short distance mode and 33 ms for the medium and long distance modes.
-     * Predefined values = 15, 20, 33, 50, 100(default), 200, 500.
-     * This function must be called after SetDistanceMode.
-     */
-  frontRangeSensor.setTimingBudgetInMs(50); // Set for 10HZ or less
+//   /*
+//      * The minimum timing budget is 20 ms for the short distance mode and 33 ms for the medium and long distance modes.
+//      * Predefined values = 15, 20, 33, 50, 100(default), 200, 500.
+//      * This function must be called after SetDistanceMode.
+//      */
+//   frontRangeSensor.setTimingBudgetInMs(50); // Set for 10HZ or less
 
-  // measure periodically about 10/sec. 
-  // Intermeasurement period must be >/= timing budget.
-  frontRangeSensor.setIntermeasurementPeriod(1000/L4_DATA_RATE_HZ);
-  frontRangeSensor.startRanging(); // Start once
-}
+//   // measure periodically about 10/sec. 
+//   // Intermeasurement period must be >/= timing budget.
+//   frontRangeSensor.setIntermeasurementPeriod(1000/L4_DATA_RATE_HZ);
+//   frontRangeSensor.startRanging(); // Start once
+// }
 
-void getL4SensorData(void){
-  if (l4DataPeriodMs == 0) return; // TODO: How to adjust measurement rate
-  if (frontRangeSensor.checkForDataReady()) {
+// void getL4SensorData(void){
+//   if (l4DataPeriodMs == 0) return; // TODO: How to adjust measurement rate
+//   if (frontRangeSensor.checkForDataReady()) {
 
-    byte rangeStatus = frontRangeSensor.getRangeStatus();
-    unsigned int distance = frontRangeSensor.getDistance(); //Get the result of the measurement from the sensor
-    frontRangeSensor.clearInterrupt();
+//     byte rangeStatus = frontRangeSensor.getRangeStatus();
+//     unsigned int distance = frontRangeSensor.getDistance(); //Get the result of the measurement from the sensor
+//     frontRangeSensor.clearInterrupt();
 
-    unsigned int tSignalRate = frontRangeSensor.getSignalRate();
-    unsigned int tAmbientRate = frontRangeSensor.getAmbientRate();
+//     unsigned int tSignalRate = frontRangeSensor.getSignalRate();
+//     unsigned int tAmbientRate = frontRangeSensor.getAmbientRate();
 
-    // NULL distance when status is not good
-    if (rangeStatus != 0) distance = 0;
+//     // NULL distance when status is not good
+//     if (rangeStatus != 0) distance = 0;
 
-    Serial.print("L4 ");
-    Serial.print(rangeStatus);
-    Serial.print(' ');
-    Serial.print(distance);
-    Serial.print(' ');
-    Serial.print(tSignalRate / 100);
-    Serial.print(' ');
-    Serial.println(tAmbientRate / 100);
-  }
-}
+//     Serial.print("L4 ");
+//     Serial.print(rangeStatus);
+//     Serial.print(' ');
+//     Serial.print(distance);
+//     Serial.print(' ');
+//     Serial.print(tSignalRate / 100);
+//     Serial.print(' ');
+//     Serial.println(tAmbientRate / 100);
+//   }
+// }
 
 ////////////////////////////////////////////////////
 // VL53L5CX 8x8 TOF sensor, set of 4 for obstical and can detection
@@ -475,68 +480,68 @@ void getL5SensorsData(void) {
   }
 }
 
-////////////////////////////////////////////////////////////
-// Rear sensors using OPT3101 sensor module
-// 50dge Left and Right sensors, 60deg Center sensor
-int opt3101DataPeriodMs = 0;
-void initOpt3101Sensors() {
-  opt3101Sensors.init();
-  if (opt3101Sensors.getLastError())
-  {
-    Serial.print(F("Failed to initialize OPT3101: error "));
-    Serial.println(opt3101Sensors.getLastError());
-    while (1) {}
-  }
+// ////////////////////////////////////////////////////////////
+// // Rear sensors using OPT3101 sensor module
+// // 50dge Left and Right sensors, 60deg Center sensor
+// int opt3101DataPeriodMs = 0;
+// void initOpt3101Sensors() {
+//   opt3101Sensors.init();
+//   if (opt3101Sensors.getLastError())
+//   {
+//     Serial.print(F("Failed to initialize OPT3101: error "));
+//     Serial.println(opt3101Sensors.getLastError());
+//     while (1) {}
+//   }
 
-  // Average of N frames, each frame takes about 0.25ms
-  // N is power of 2 i.e 2,4,6,8...
-//  opt3101Sensors.setFrameTiming(256); // about 64ms -> 16 Hz
-  cfgOpt3101DataRate(16);
-  opt3101Sensors.setChannel(0);
-  opt3101Sensors.setBrightness(OPT3101Brightness::Adaptive);
+//   // Average of N frames, each frame takes about 0.25ms
+//   // N is power of 2 i.e 2,4,6,8...
+// //  opt3101Sensors.setFrameTiming(256); // about 64ms -> 16 Hz
+//   cfgOpt3101DataRate(16);
+//   opt3101Sensors.setChannel(0);
+//   opt3101Sensors.setBrightness(OPT3101Brightness::Adaptive);
 
-  opt3101Sensors.startSample();
-}
+//   opt3101Sensors.startSample();
+// }
 
-void cfgOpt3101DataRate(int hz){
-  if(hz>0 && hz<=30) opt3101DataPeriodMs = 1000/hz;
-  else opt3101DataPeriodMs = 0;
-  int frameRate = opt3101DataPeriodMs;
-  int frameRate2n = 2;
-  // Get power of 2 frame rate
-  while(frameRate > frameRate2n) frameRate2n*=2;
-  opt3101Sensors.setFrameTiming(frameRate2n);
-  Serial.print(frameRate2n);
-}
+// void cfgOpt3101DataRate(int hz){
+//   if(hz>0 && hz<=30) opt3101DataPeriodMs = 1000/hz;
+//   else opt3101DataPeriodMs = 0;
+//   int frameRate = opt3101DataPeriodMs;
+//   int frameRate2n = 2;
+//   // Get power of 2 frame rate
+//   while(frameRate > frameRate2n) frameRate2n*=2;
+//   opt3101Sensors.setFrameTiming(frameRate2n);
+//   Serial.print(frameRate2n);
+// }
 
-void getOpt3101SensorsData()
-{
-  if (opt3101Sensors.isSampleDone())
-  {
-    opt3101Sensors.readOutputRegs();
+// void getOpt3101SensorsData()
+// {
+//   if (opt3101Sensors.isSampleDone())
+//   {
+//     opt3101Sensors.readOutputRegs();
 
-    opt3101SensorsAmplitudes[opt3101Sensors.channelUsed] = opt3101Sensors.amplitude;
-    opt3101SensorsDistances[opt3101Sensors.channelUsed] = opt3101Sensors.distanceMillimeters;
+//     opt3101SensorsAmplitudes[opt3101Sensors.channelUsed] = opt3101Sensors.amplitude;
+//     opt3101SensorsDistances[opt3101Sensors.channelUsed] = opt3101Sensors.distanceMillimeters;
 
-    if (opt3101Sensors.channelUsed == 2)
-    {
-      // 0:Right 50deg 1:Center 60deg 2:Left 50deg
-      // String format integers, -dist is invalid
-      // OPT A0 D0 A1 D1 A2 D2
-      Serial.print("OPT ");
-      for (uint8_t i = 0; i < 3; i++)
-      {
-        Serial.print(opt3101SensorsAmplitudes[i]);
-        Serial.print(' ');
-        Serial.print(opt3101SensorsDistances[i]);
-        Serial.print(" ");
-      }
-      Serial.println();
-    }
-    opt3101Sensors.nextChannel();
-    opt3101Sensors.startSample();
-  }
-}
+//     if (opt3101Sensors.channelUsed == 2)
+//     {
+//       // 0:Right 50deg 1:Center 60deg 2:Left 50deg
+//       // String format integers, -dist is invalid
+//       // OPT A0 D0 A1 D1 A2 D2
+//       Serial.print("OPT ");
+//       for (uint8_t i = 0; i < 3; i++)
+//       {
+//         Serial.print(opt3101SensorsAmplitudes[i]);
+//         Serial.print(' ');
+//         Serial.print(opt3101SensorsDistances[i]);
+//         Serial.print(" ");
+//       }
+//       Serial.println();
+//     }
+//     opt3101Sensors.nextChannel();
+//     opt3101Sensors.startSample();
+//   }
+// }
 
 void setup()
 {
@@ -567,11 +572,11 @@ void setup()
 
   initL5Sensors();
 
-  initL4Sensor();
+  // initL4Sensor();
 
-  initOpt3101Sensors();
+  // initOpt3101Sensors();
 
-  initImuSensor();
+  // initImuSensor();
 
   initINA228();
 
@@ -600,18 +605,18 @@ void getSerialCommands() {
       sigmVal = val;
       return;
     }
-    if(sscanf(incomingString.c_str(), "IDHZ %d", &val) == 1){
-      cfgImuDataRate(val);
-      return;
-    }
-    if(sscanf(incomingString.c_str(), "ICHZ %d", &val) == 1){
-      cfgImuCalRate(val);
-      return;
-    }
-    if(sscanf(incomingString.c_str(), "L4HZ %d", &val) == 1){
-      cfgL4DataRate(val);
-      return;
-    }
+    // if(sscanf(incomingString.c_str(), "IDHZ %d", &val) == 1){
+    //   cfgImuDataRate(val);
+    //   return;
+    // }
+    // if(sscanf(incomingString.c_str(), "ICHZ %d", &val) == 1){
+    //   cfgImuCalRate(val);
+    //   return;
+    // }
+    // if(sscanf(incomingString.c_str(), "L4HZ %d", &val) == 1){
+    //   cfgL4DataRate(val);
+    //   return;
+    // }
     if(sscanf(incomingString.c_str(), "L5HZ %d", &val) == 1){
       cfgL5DataRate(val);
       return;
@@ -620,10 +625,10 @@ void getSerialCommands() {
       cfgBatDataRate(val);
       return;
     }
-    if(sscanf(incomingString.c_str(), "OPHZ %d", &val) == 1){
-      cfgOpt3101DataRate(val);
-      return;
-    }
+    // if(sscanf(incomingString.c_str(), "OPHZ %d", &val) == 1){
+    //   cfgOpt3101DataRate(val);
+    //   return;
+    // }
   }
 }
 
@@ -634,12 +639,12 @@ void loop()
 
   getInaSensorData();
   
-  getImuSensorData();
-  getImuCalStatus();
+  // getImuSensorData();
+  // getImuCalStatus();
 
-  getL4SensorData();
+  // getL4SensorData();
 
   getL5SensorsData();
 
-  getOpt3101SensorsData();
+  // getOpt3101SensorsData();
 }
