@@ -1,0 +1,31 @@
+#! /bin/bash
+
+# Bash script file to be inclused in standard .bashrc
+# This script setup the ROS2 environment for RoboRama 2026
+# 6-can robot code
+
+# NOTE: use ros2 ID defaults for pixi compatibility
+# A fix for NAV2
+#sudo apt install ros-humble-rmw-cyclonedds-cpp
+#export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+#export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+# default- open terminal in RoboRama 2026 workspace
+cd ~/rr26_ws
+
+# Set Id to my birthday date day number!!!
+#export ROS_DOMAIN_ID=18
+
+# set ID to 0 to be compatible with Windows pixi ros2 stuff
+# I could not determine how to change the ID in the pixi environment
+export ROS_DOMAIN_ID=0
+
+# ROS2 workspace helpers
+source /opt/ros/humble/setup.bash
+source /usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash
+source install/setup.bash
+
+# Arduino command line
+alias arduino-cli=~/local/bin/arduino-cli
+
