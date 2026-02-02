@@ -188,7 +188,7 @@ class Roborama25ControllerNodeLc(LifecycleNode):
     feetToMeter:float = 0.3048
 
     def __init__(self, nav: BasicNavigator):
-        super().__init__('roborama25_controller_node_lc')
+        super().__init__('rr26_controller_node_lc')
 
         self.nav = nav
 
@@ -231,7 +231,7 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         self.tofL5R_pcd_subscription = self.create_subscription(PointCloud2, '/tofL5R_pcd', self.tofL5R_pcd_callback, 
                                                                 10, callback_group=self.cb_group_re)
 
-        self.get_logger().info(f"roborama25_controller_node Started {self.nav_arena=}")
+        self.get_logger().info(f"rr26_controller_node Started {self.nav_arena=}")
     
 
     ############# Start Lifecycle stuff #############

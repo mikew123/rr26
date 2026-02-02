@@ -63,7 +63,7 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
     movingBackward:bool = True # True if moving backwards, used for rear sensor scan messages
     
     def __init__(self):
-        super().__init__('roborama25_front_sensors_node_lc')        
+        super().__init__('rr26_front_sensors_node_lc')        
 
         self.get_logger().info(f"Roborama25FrontSensorsNodeLC Started")
 

@@ -80,7 +80,7 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
     wheel_serial_port_name = "/dev/serial/by-id/usb-Waveshare_RP2040_Zero_E6617C93E33D6927-if00"
 
     def __init__(self):
-        super().__init__('roborama25_wheel_controller_node_lc')
+        super().__init__('rr26_wheel_controller_node_lc')
 
         # no lifecycle support - it simply is not broadcast when callbacks are blocked when not in active state
         self.tf_broadcaster = TransformBroadcaster(self)

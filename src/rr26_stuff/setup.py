@@ -24,13 +24,13 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'roborama25_can_xy_node = rr26_stuff.roborama25_can_xy_node:main',
-            'roborama25_front_sensors_node_lc = rr26_stuff.roborama25_front_sensors_node_lc:main',
+            'rr26_can_xy_node = rr26_stuff.rr26_can_xy_node:main',
+            'rr26_front_sensors_node_lc = rr26_stuff.rr26_front_sensors_node_lc:main',
             'openmv_serial_node = rr26_stuff.openmv_serial_node:main',
-            "roborama25_wheel_controller_node_lc = rr26_stuff.roborama25_wheel_controller_node_lc:main",
-            "roborama25_teleop_node = rr26_stuff.roborama25_teleop_node:main",
-            "roborama25_controller_node_lc = rr26_stuff.roborama25_controller_node_lc:main",
-            'roborama25_lifecycle_node_manager = rr26_stuff.roborama25_lifecycle_node_manager:main',
+            "rr26_wheel_controller_node_lc = rr26_stuff.rr26_wheel_controller_node_lc:main",
+            "rr26_teleop_node = rr26_stuff.rr26_teleop_node:main",
+            "rr26_controller_node_lc = rr26_stuff.rr26_controller_node_lc:main",
+            'rr26_lifecycle_node_manager = rr26_stuff.rr26_lifecycle_node_manager:main',
         ],
     },
 )

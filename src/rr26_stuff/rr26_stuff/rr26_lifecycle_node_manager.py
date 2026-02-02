@@ -7,7 +7,7 @@ from lifecycle_msgs.msg import Transition
 
 class Roborama25LifecycleNodeManager(Node):
     def __init__(self):
-        super().__init__("roborama25_lifecycle_node_manager")
+        super().__init__("rr26_lifecycle_node_manager")
         
         # Get managed node parameters
         self.declare_parameter("front_sensors_node_name", "sensors")
