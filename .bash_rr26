@@ -32,4 +32,4 @@ alias arduino-cli=~/local/bin/arduino-cli
 # alias to start roboram 2026 ros code
 alias rr26="clear; colcon build;\
     source install/setup.bash;\
-    ros2 launch roborama25_stuff roborama25_lc_nav2_bringup_launch.py"
+    ros2 launch rr26_stuff roborama25_lc_nav2_bringup_launch.py"

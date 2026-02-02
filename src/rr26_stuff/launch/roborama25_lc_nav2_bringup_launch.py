@@ -98,7 +98,7 @@ def generate_launch_description():
         
 
         launch_ros.actions.Node(
-            package='roborama25_stuff',
+            package='rr26_stuff',
             executable='roborama25_teleop_node',
             name='teleop'
         ),
@@ -115,28 +115,28 @@ def generate_launch_description():
         ),
 
         launch_ros.actions.LifecycleNode(
-            package='roborama25_stuff',
+            package='rr26_stuff',
             executable='roborama25_front_sensors_node_lc',
             name='front_sensors_node_lc',
             namespace="",
         ),
 
         launch_ros.actions.LifecycleNode(
-            package='roborama25_stuff',
+            package='rr26_stuff',
             executable='roborama25_wheel_controller_node_lc',
             name='wheel_controller_node_lc',
             namespace="",
         ),
 
         launch_ros.actions.LifecycleNode(
-            package='roborama25_stuff',
+            package='rr26_stuff',
             executable='roborama25_controller_node_lc',
             name='controller_node_lc',
             namespace="",
         ),
         
         launch_ros.actions.Node(
-            package="roborama25_stuff",
+            package="rr26_stuff",
             executable="roborama25_lifecycle_node_manager",
             parameters=[
                 {"front_sensors_node_name": "front_sensors_node_lc"},
@@ -156,13 +156,13 @@ def generate_launch_description():
         ),
         
         launch_ros.actions.Node(
-            package='roborama25_stuff',
+            package='rr26_stuff',
             executable='openmv_serial_node',
             name='openmv_serial'
         ),
 
         launch_ros.actions.Node(
-            package='roborama25_stuff',
+            package='rr26_stuff',
             executable='roborama25_can_xy_node',
             name='roborama25_can_xy'
         ),
