@@ -323,7 +323,7 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
         """
         if strArray[0]=="BT" and len(strArray)==4:
             try :
-                volts:float = float(strArray[1])/1000
+                volts:float = float(strArray[1])
                 amps:float = float(strArray[2])/1000
                 tempC:float = float(strArray[3])
                 # send Batter State message

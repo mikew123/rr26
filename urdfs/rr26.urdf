@@ -152,11 +152,27 @@
     </visual>
   </link>
 
+  <joint name="cam_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="cam_link"/>
+    <origin xyz="0.070 0 0.050" rpy="0 0 0"/>
+  </joint>
+
+  <link name="cam_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.025 0.025 0.015"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
   <!-- RPLidar C1 direction must be 180 deg to scan correctly -->
   <joint name="lidar_joint" type="fixed">
     <parent link="base_link"/>
     <child link="lidar_link"/>
-    <origin xyz="0 0 0.115" rpy="0 0 3.1416"/>
+    <origin xyz="0 0 0.075" rpy="0 0 3.1416"/>
   </joint>
 
   <link name="lidar_link">
