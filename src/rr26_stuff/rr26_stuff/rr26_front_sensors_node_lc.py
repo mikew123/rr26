@@ -24,29 +24,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 
-# create quanterion and inserts into transform (if r_rot is sent) also returns
-# def quaternion_from_euler(roll:float, pitch:float, yaw:float, t_rot:Transform.rotation=0):
-#     cy = math.cos(yaw * 0.5)
-#     sy = math.sin(yaw * 0.5)
-#     cp = math.cos(pitch * 0.5)
-#     sp = math.sin(pitch * 0.5)
-#     cr = math.cos(roll * 0.5)
-#     sr = math.sin(roll * 0.5)
-
-#     q = [0] * 4
-#     q[0] = cy * cp * cr + sy * sp * sr #w
-#     q[1] = cy * cp * sr - sy * sp * cr #x
-#     q[2] = sy * cp * sr + cy * sp * cr #y
-#     q[3] = sy * cp * cr - cy * sp * sr #z
-
-#     if t_rot != 0:
-#         t_rot.x = q[1]
-#         t_rot.y = q[2]
-#         t_rot.z = q[3]
-#         t_rot.w = q[0]
-    
-#     return q   
-
 class Roborama25FrontSensorsNodeLC(LifecycleNode):
     # parameters?
 
@@ -65,7 +42,7 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
     def __init__(self):
         super().__init__('rr26_front_sensors_node_lc')        
 
-        self.get_logger().info(f"Roborama25FrontSensorsNodeLC Started")
+        self.get_logger().info(f"Roborama25FrontSensorsNodeLC: Started")
 
     # Create ROS2 communications, connect to HW
     def on_configure(self, previous_state: LifecycleState):
@@ -75,9 +52,6 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
 
         self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.serial_timer_callback)
         self.serial_timer.cancel()
-        
-        # self.broadcast_timer = self.create_timer(1/10.0, self.broadcast_timer_callback)
-        # self.broadcast_timer.cancel()
         
         # There is no lifecycle support for subscription
         self.cmd_vel_subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
@@ -106,7 +80,6 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
         self.destroy_lifecycle_publisher(self.CAL_msg_publisher)
         
     def cleanup(self) :                
-        # self.destroy_timer(self.broadcast_timer)
         self.destroy_timer(self.serial_timer)
         self.sensor_serial_port=None
         # There is no lifecycle subscription
@@ -139,7 +112,6 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
     # Deactivate stuff used in shutdown, error
     def deactivate(self):
         self.lifecycle_state_active = False
-        # self.broadcast_timer.cancel()
         self.serial_timer.cancel()
         self.sensor_serial_port.close()
         
