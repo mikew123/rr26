@@ -24,29 +24,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 
-# create quanterion and inserts into transform (if r_rot is sent) also returns
-# def quaternion_from_euler(roll:float, pitch:float, yaw:float, t_rot:Transform.rotation=0):
-#     cy = math.cos(yaw * 0.5)
-#     sy = math.sin(yaw * 0.5)
-#     cp = math.cos(pitch * 0.5)
-#     sp = math.sin(pitch * 0.5)
-#     cr = math.cos(roll * 0.5)
-#     sr = math.sin(roll * 0.5)
-
-#     q = [0] * 4
-#     q[0] = cy * cp * cr + sy * sp * sr #w
-#     q[1] = cy * cp * sr - sy * sp * cr #x
-#     q[2] = sy * cp * sr + cy * sp * cr #y
-#     q[3] = sy * cp * cr - cy * sp * sr #z
-
-#     if t_rot != 0:
-#         t_rot.x = q[1]
-#         t_rot.y = q[2]
-#         t_rot.z = q[3]
-#         t_rot.w = q[0]
-    
-#     return q   
-
 class Roborama25FrontSensorsNodeLC(LifecycleNode):
     # parameters?
 
@@ -63,9 +40,9 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
     movingBackward:bool = True # True if moving backwards, used for rear sensor scan messages
     
     def __init__(self):
-        super().__init__('roborama25_front_sensors_node_lc')        
+        super().__init__('rr26_front_sensors_node_lc')        
 
-        self.get_logger().info(f"Roborama25FrontSensorsNodeLC Started")
+        self.get_logger().info(f"Roborama25FrontSensorsNodeLC: Started")
 
     # Create ROS2 communications, connect to HW
     def on_configure(self, previous_state: LifecycleState):
@@ -76,57 +53,33 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
         self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.serial_timer_callback)
         self.serial_timer.cancel()
         
-        # self.broadcast_timer = self.create_timer(1/10.0, self.broadcast_timer_callback)
-        # self.broadcast_timer.cancel()
-        
         # There is no lifecycle support for subscription
         self.cmd_vel_subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
 
-        self.tofRL_scan_publisher = self.create_lifecycle_publisher(LaserScan, 'tofRL_scan', 10)
-        self.tofRC_scan_publisher = self.create_lifecycle_publisher(LaserScan, 'tofRC_scan', 10)
-        self.tofRR_scan_publisher = self.create_lifecycle_publisher(LaserScan, 'tofRR_scan', 10)
-        self.tofRL_rng_publisher = self.create_lifecycle_publisher(Range, 'tofRL_rng', 10)
-        self.tofRC_rng_publisher = self.create_lifecycle_publisher(Range, 'tofRC_rng', 10)
-        self.tofRR_rng_publisher = self.create_lifecycle_publisher(Range, 'tofRR_rng', 10)
-        self.tofL4_rng_publisher = self.create_lifecycle_publisher(Range, 'tofL4_rng', 10)
         self.tofL5L_pcd_publisher = self.create_lifecycle_publisher(PointCloud2, 'tofL5L_pcd', 10)
         self.tofL5R_pcd_publisher = self.create_lifecycle_publisher(PointCloud2, 'tofL5R_pcd', 10)
-        self.tofL4_pcd_publisher = self.create_lifecycle_publisher(PointCloud2, 'tofL4_pcd', 10)
         self.IMU_msg_publisher = self.create_lifecycle_publisher(Imu, 'IMU', 10)
         self.battery_status_msg_publisher = self.create_lifecycle_publisher(BatteryState, 'battery_status', 10)
         self.temperature_msg_publisher = self.create_lifecycle_publisher(Temperature, 'temperature', 10)
         
         #DEBUG publishers
         self.tofL5_msg_publisher = self.create_lifecycle_publisher(String, 'tofL5_msg', 10)
-        self.tofL4_msg_publisher = self.create_lifecycle_publisher(String, 'tofL4_msg', 10)
-        self.tofOPT_msg_publisher = self.create_lifecycle_publisher(String, 'tofOPT_msg', 10)
         self.CAL_msg_publisher = self.create_lifecycle_publisher(String, 'IMUCAL_msg', 10)
 
         return TransitionCallbackReturn.SUCCESS
 
     # Clean up stuff for cleanup, shutdown, error
     def cleanup_lc(self) :        
-        self.destroy_lifecycle_publisher(self.tofRL_scan_publisher)
-        self.destroy_lifecycle_publisher(self.tofRC_scan_publisher)
-        self.destroy_lifecycle_publisher(self.tofRR_scan_publisher)
-        self.destroy_lifecycle_publisher(self.tofRL_rng_publisher)
-        self.destroy_lifecycle_publisher(self.tofRC_rng_publisher)
-        self.destroy_lifecycle_publisher(self.tofRR_rng_publisher)
-        self.destroy_lifecycle_publisher(self.tofL4_rng_publisher)
         self.destroy_lifecycle_publisher(self.tofL5L_pcd_publisher)
         self.destroy_lifecycle_publisher(self.tofL5R_pcd_publisher)
-        self.destroy_lifecycle_publisher(self.tofL4_pcd_publisher)
         self.destroy_lifecycle_publisher(self.IMU_msg_publisher)
         self.destroy_lifecycle_publisher(self.battery_status_msg_publisher)
         self.destroy_lifecycle_publisher(self.temperature_msg_publisher)
         
         self.destroy_lifecycle_publisher(self.tofL5_msg_publisher)
-        self.destroy_lifecycle_publisher(self.tofL4_msg_publisher)
-        self.destroy_lifecycle_publisher(self.tofOPT_msg_publisher)
         self.destroy_lifecycle_publisher(self.CAL_msg_publisher)
         
     def cleanup(self) :                
-        # self.destroy_timer(self.broadcast_timer)
         self.destroy_timer(self.serial_timer)
         self.sensor_serial_port=None
         # There is no lifecycle subscription
@@ -151,7 +104,6 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
         self.sensor_serial_port.write(f"MODE ROS2\n".encode()) # extra write for startup
         self.sensor_serial_port.write(f"REFL {self.reflVal}\n".encode())
         self.sensor_serial_port.write(f"SIGM {self.sigmVal}\n".encode())
-        #self.sensor_serial_port.write(f"OPHZ 16\n".encode()) #rear sensor data rate
         self.sensor_serial_port.flush()
 
         self.lifecycle_state_active = True
@@ -160,7 +112,6 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
     # Deactivate stuff used in shutdown, error
     def deactivate(self):
         self.lifecycle_state_active = False
-        # self.broadcast_timer.cancel()
         self.serial_timer.cancel()
         self.sensor_serial_port.close()
         
@@ -198,10 +149,6 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
             strArray = received_data.split(" ")
             if strArray[0]=="L5" :
                 self.L5_processing(strArray)
-            elif strArray[0]=="L4" :
-                self.L4_processing(strArray)
-            elif strArray[0]=="OPT" :
-                self.OPT_processing(strArray)
             elif strArray[0]=="IMU" :
                 self.IMU_processing(strArray)
             elif strArray[0]=="CAL" :
@@ -265,7 +212,7 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
                 xy0 = [[],[]]
                 zz0 = 0.015 # 15mm from module bottom
                 for m in [0,1]: # 2 sets of sensor modules L=0 R=1
-                    for s in [0,1]: # 2 Vl53L4 sensors on each module           
+                    for s in [0,1]: # 2 Vl53L5 sensors on each module           
                         mntAngleRad = mntAngle[s]*(math.pi/(2*fov)) #scaled to Radians
                         for n in range(0, 8) :
                             theta = (n-4+0.5)*fovPtRad  - mntAngleRad # scaled to radians
@@ -293,101 +240,6 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
             except Exception as e:
                 self.get_logger().error(f"L5_processing: Error in L5 message {e=} {strArray=}")
 
-    def L4_processing(self, strArray):
-        num_data = 4
-        if strArray[0]=="L4" and len(strArray)==1+num_data :
-            try :
-                # Publish the received serial line as a String message
-                emsg = String()
-                for i in range(1, num_data+1):
-                    emsg.data += strArray[i]+" "
-                self.tofL4_msg_publisher.publish(emsg)
-            
-                # Create a single point range message 
-                s = int(strArray[1]) #status
-                d = int(strArray[2]) #distance mm
-            
-                # check data status - 0 is OK
-                if s==0 : d = d/1000.0 # convert mm to meters
-                else    : d = math.inf # Use NaN instead?
-                fov = 2*math.pi*18.0/360
-                
-                rng = self.range_msg(d,fov,"tofL4_link")
-                self.tofL4_rng_publisher.publish(rng)
-
-                # Create a point cloud to visualize in Foxglove
-                pcd = self.point_cloud([d, 0, 0], 'tofL4_link')                
-                self.tofL4_pcd_publisher.publish(pcd)
-
-                # self.get_logger().info(f"L4_processing: {s=} {d=} {rng=} {pcd=} {strArray=}")
-                
-            except Exception as e:
-                self.get_logger().error(f"L4_processing: Error in L4 message {e=} {strArray=}")
-            
-    def OPT_processing(self, strArray):
-        """
-        Process the 3 OPT3101 rear distance sensors
-        """
-        num_data = 6
-        min_amp = 100
-        max_dist = 500
-        invalid_dist = -1.0
-        if strArray[0]=="OPT" and len(strArray)==1+num_data :
-            try :
-                # Publish the received serial line as a String message
-                emsg = String()
-                for i in range(1, num_data+1):
-                    emsg.data += strArray[i]+" "
-                self.tofOPT_msg_publisher.publish(emsg)
-            
-                # Create 3 range messages 
-                # Rear Right sensor
-                a = int(strArray[1]) #amplitude
-                d = int(strArray[2]) #distance mm
-                if a>=min_amp and d<=max_dist:
-                    dR = d/1000.0
-                else :
-                    dR =  invalid_dist
-                fovR = 2*math.pi*50.0/360
-                rng = self.range_msg(dR,fovR,"tofRR_link")
-                self.tofRR_rng_publisher.publish(rng)
-
-                # Rear Center sensor
-                a = int(strArray[3]) #amplitude
-                
-                d = int(strArray[4]) #distance mm
-                if a>=min_amp and d<=max_dist:
-                    dC = d/1000.0
-                else :
-                    dC =  invalid_dist
-                fovC = 2*math.pi*50.0/360
-                rng = self.range_msg(dC,fovC,"tofRC_link")
-                self.tofRC_rng_publisher.publish(rng)
-
-                # Rear Left sensor
-                a = int(strArray[5]) #amplitude
-                d = int(strArray[6]) #distance mm
-                if a>=min_amp and d<=max_dist:
-                    dL = d/1000.0
-                else :
-                    dL =  invalid_dist
-                fovL = 2*math.pi*50.0/360
-                rng = self.range_msg(dL,fovL,"tofRL_link")
-                self.tofRL_rng_publisher.publish(rng)
-
-                # self.get_logger().error(f"OPT_processing: {strArray=}")
-            
-                # Create scan messages for front center while moving backwards
-                if self.movingBackward==True:
-                    scan = self.scan_msg_from_range(dL, fovL, "tofRL_link")
-                    self.tofRL_scan_publisher.publish(scan)
-                    scan = self.scan_msg_from_range(dC, fovC, "tofRC_link")
-                    self.tofRC_scan_publisher.publish(scan)
-                    scan = self.scan_msg_from_range(dR, fovR, "tofRR_link")
-                    self.tofRR_scan_publisher.publish(scan)
-                    
-            except Exception as e:
-                self.get_logger().error(f"OPT_processing: Error in OPT message {e=} {strArray=}")
                 
                 
     def IMU_processing(self, strArray):
@@ -443,7 +295,7 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
         """
         if strArray[0]=="BT" and len(strArray)==4:
             try :
-                volts:float = float(strArray[1])/1000
+                volts:float = float(strArray[1])
                 amps:float = float(strArray[2])/1000
                 tempC:float = float(strArray[3])
                 # send Batter State message

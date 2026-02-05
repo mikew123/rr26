@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
+# 4/18/2025 MRW copied from robo24_can_xy_node.property
+
 import rclpy
-import sys
-import serial
 import math
 import time
 import numpy as np
@@ -22,10 +22,7 @@ class Robo24CanXYNode(Node):
     #Camera
     HFOV = 70.8 #Degrees horizontal left-right
     VFOV = 55.6 #Degrees vertical up-down
-    camThetaOffsetY = -1.5 #Degrees offset from vertical level
-    camHeight = 150 #mm from ground
-    blobYHeight = int(120/2) #mm blob XY marker of can from ground (can=120mm high)
-    cam2blobY = camHeight - blobYHeight #mm camera heigth above blob XY marker
+    camThetaOffsetY = -0.0 #Degrees offset from vertical level
 
     heightTol = 70 #50 # Tolerance for height tolerance in percent
 
@@ -51,9 +48,10 @@ class Robo24CanXYNode(Node):
     # called when openmv detects a can blob
     # create a dynamic object XY that can be used to drive robo24
     def openmv_msg_callback(self, msg) :
+        #self.get_logger().info(f"OpenMV {msg=}")
         #parse message
         strArray = msg.data.split(" ")
-        if strArray[0]!="SVGA" or len(strArray)!=6:
+        if strArray[0]!="SVGA" or len(strArray)!=7:
             self.get_logger().error(f"Openmv message format error: {msg.data}")
             return
     
@@ -61,8 +59,9 @@ class Robo24CanXYNode(Node):
             blobX = int(strArray[1]) #X location in image
             blobY = int(strArray[2]) #Y location in image
             blobA = int(strArray[3]) #Area of object
-            blobH = float(strArray[4]) #Height of object
+            blobH = int(strArray[4]) #Height of object
             blobR = float(strArray[5]) #Detection  rate
+            blobT = int(strArray[6])   #Threshold num used 
         except:
             self.get_logger().error(f"Openmv message parse error: {msg.data}")
             return
@@ -74,18 +73,12 @@ class Robo24CanXYNode(Node):
         if(blobY<0) :
             # get map XY coordinates from blob coordinates using triangulation 
             # values in mm and degrees
-            (X,Y,thetaX) = self.mapXYFromBlobXY(blobX, blobY)
+            (X,Y,thetaX) = self.mapXYFromBlobXH(blobX, blobH)
 
-            #self.get_logger().info(f"BLOB {blobX = } {blobY = } {thetaX = } {X = } {Y = }")
+            #self.get_logger().info(f"BLOB {blobX = } {blobH = } {thetaX = } {X = } {Y = }")
 
-            # make sure distance is positive and > 0
+            # make sure distance (X) is positive and > 0
             if X > 0 :
-                # get distance from TOF
-                # ?????? also returns the tofXY 8x8x3 sensor used (for debug?)
-                #(tofDist,tofX,tofY) = self.distanceFromTof(blobX, blobY)
-
-                #self.get_logger().info(f"{tofDist = } {tofX = } {tofY = }")
-
                 # publish a can transform from blobXY conversion
                 # Convert to Meters and Radians
                 X_m = X/1000.0
@@ -104,19 +97,14 @@ class Robo24CanXYNode(Node):
                 if X_mFiltered > 0.0 :
                     # use blob area to qualify blob based on distance before creating TF
                     # NOTE: 50 is area at 1.0 meters; area is 1/100 from openmv
-                    blobAMax = 50/(X_mFiltered*X_mFiltered) * 1.25
-                    blobAMin = 50/(X_mFiltered*X_mFiltered) * 0.75
                     # use blob height to qualify blob based on distance
-                    # # NOTE: 72 is the height 
-                    # blobHMax = (1+(self.heightTol/100))*(72/X_mFiltered)
-                    # blobHMin = (1-(self.heightTol/100))*(72/X_mFiltered)
                     # NOTE: 95 is the height 
                     blobHMax = (1+(self.heightTol/100))*(95/X_mFiltered)
                     blobHMin = (1-(self.heightTol/100))*(95/X_mFiltered)
-                #if (blobA<=blobAMax and blobA>blobAMin) :
                     if (blobH<=blobHMax and blobH>=blobHMin) :
                         # TODO: Why do I need to negate Y?
-                        self.broadcast_tf("base_link","can",(X_mFiltered, -Y_mFiltered, thetaX_r_mFiltered))
+                        self.broadcast_tf("cam_link","can",(X_mFiltered, -Y_mFiltered, thetaX_r_mFiltered))
+                        # self.broadcast_tf("base_link","can",(X_mFiltered, -Y_mFiltered, thetaX_r_mFiltered))
                         # publish a debug message
                         strMsg = f"A{blobA} H{blobH} XY {(blobX,blobY)}  ({X_mFiltered: .3f},{Y_mFiltered: .3f}) Tr{thetaX_r_mFiltered: .3f}" # TOF {(tofX,tofY)} {tofDist}"
                         emsg = String()
@@ -173,40 +161,25 @@ class Robo24CanXYNode(Node):
         msg.data = strMsg
         self.tofxydebug_msg_publisher.publish(msg)
 
-    # return (X, Y) map location relative to sensor (not image xy)
-    def mapXYFromBlobXY(self, blobX, blobY) :
+    # return (X, Y, theta) map location relative to openmv sensor
+    # Uses can height for distance metric
+    def mapXYFromBlobXH(self, blobX: int, blobH: int) :
 
-        # calculate map X with triangulation using camera height to blob center height
-        thetaX = (self.VFOV/2 * -blobY/(self.imgRngY/2)) + self.camThetaOffsetY #degrees
-        thetaX_rad = (math.pi*thetaX/180)
-        mapX = int((self.cam2blobY/(math.tan(thetaX_rad))) * math.sqrt(2)) # mm
+        # calculate distance from camera using can blob height
+        if blobH > 0 :
+            dist = (1000.0 * 110.0/blobH) + 0 # 70 # mm
+        else :
+            dist = 0 # TODO: uses NaN?
  
         # calculate map Y using distance (X) and HFOV trig
-        thetaY = self.HFOV * (blobX/self.imgRngX)
-        thetaY_rad = math.pi*thetaY/180
-        mapY = int((mapX*(math.tan(thetaY_rad))) / math.sqrt(2)) # mm
+        thetaY: float = self.HFOV * (float(blobX)/self.imgRngX)
+        thetaY_rad: float = math.pi*thetaY/180
+
+        #mapY = int((dist*(math.tan(thetaY_rad))) / math.sqrt(2)) # mm
+        mapY: int = int(dist*(math.sin(thetaY_rad))) # mm
+        mapX: int = int(dist*(math.cos(thetaY_rad))) # mm
         
-        return (mapX,mapY,thetaY)
-
-    # get TOF distance from sensor selected by blobXY
-    # only the center TOF 8x8 sensor is used which points forward
-    def distanceFromTof(self, blobX, blobY) :
-        # get distance (mapX) from TOF sensor
-        # convert blobX -1.0 to +1.0 and Y 0 to +1.0
-        blobXf = blobX/(self.imgRngX/2) # 0 to +-1.0
-        blobYf = blobY/(self.imgRngY/2) # 0 to +1.0
-        # assume TOF array center 8x8 maps directly to image
-        # TOF seems offset from camera, X+1 seems to make it closer to get answer
-        tofX = int(8+4+(4*blobXf) +1)
-        tofY = int((7*(-blobYf)) +2)
-        # keep indexes within limits
-        if(tofX>23) : tofX=23 
-        if(tofX<0)  : tofX=0  
-        if(tofY>7)  : tofY=7 
-        if(tofY<0)  : tofY=0  
-        tofDist = self.tofXY[tofY,tofX]
-
-        return (tofDist,tofX,tofY)
+        return (mapX,mapY,thetaY_rad)
 
     def broadcast_tf(self, parent, child, xyt ):
         now = self.get_clock().now()

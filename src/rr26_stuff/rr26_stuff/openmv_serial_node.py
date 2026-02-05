@@ -36,7 +36,7 @@ class OpenmvSerialNode(Node):
         # Check if a line has been received on the serial port
         if self.openmv_serial_port.in_waiting > 0:
             received_data = self.openmv_serial_port.readline().decode().strip()
-            #self.get_logger().info(f"Received: {received_data}")
+            #self.get_logger().info(f"Openmv: {received_data=}")
             
             # Publish the received serial line as a String message
             emsg = String()

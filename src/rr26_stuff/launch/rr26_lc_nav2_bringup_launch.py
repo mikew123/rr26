@@ -1,13 +1,15 @@
 
 # MRW 3/12/2025 added RPlidar from example
-# MRW renamed this file roborama25_bringup_launch.py and added roborama25 prefix to files
+# MRW renamed this file rr26_bringup_launch.py and added roborama25 prefix to files
+# MRW 5/26/2025 created life cycle launch file
+# MRW copied lc_bringup to add nav2 launch
 
 import launch
 import launch_ros.actions
 import os
 from ament_index_python.packages import get_package_share_directory
 
-### copied from RPLIDAR C1 exampple
+### copied from RPLIDAR C1 example
 #import os
 
 #from ament_index_python.packages import get_package_share_directory
@@ -16,6 +18,11 @@ from launch.actions import DeclareLaunchArgument
 from launch.actions import LogInfo
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+#added for life cycle support
+from launch_ros.actions import LifecycleNode
+#added to launch other launch files
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description():
@@ -30,14 +37,14 @@ def generate_launch_description():
     angle_compensate = LaunchConfiguration('angle_compensate', default='true')
     scan_mode = LaunchConfiguration('scan_mode', default='Standard')
 
-    # # IMU 
-    # efk_config = os.path.join(
-    #     get_package_share_directory('robo24_localization'),
-    #     'config',
-    #     'efk_config.yaml'
-    #     )
+    # from nav2 bringup launch file
+    nav2_bringup_dir = get_package_share_directory('nav2_bringup')
+    nav2_launch_dir = os.path.join(nav2_bringup_dir, 'launch')
  
- 
+    # Get the text of the robot description URDF - robot_stat_publisher does not open a file
+    with open('urdfs/rr26.urdf','r') as infp:
+    	robot_desc = infp.read()
+
     return launch.LaunchDescription([
 
         ##### copied from RPLIDAR C1 example
@@ -90,63 +97,78 @@ def generate_launch_description():
             output='screen'),
         
 
-        ##### MY ROBOT
-        # launch_ros.actions.Node(
-        #     package='roborama25_stuff',
-        #     executable='robo24_can_xy_node',
-        #     name='robo24_can_xy'
-        # ),
-
         launch_ros.actions.Node(
-            package='roborama25_stuff',
-            executable='roborama25_sensor_serial_node',
-            name='sensor_serial'
-        ),
-
-        # launch_ros.actions.Node(
-        #     package='roborama25_stuff',
-        #     executable='openmv_serial_node',
-        #     name='openmv_serial'
-        # ),
-
-        launch_ros.actions.Node(
-            package='roborama25_stuff',
-            executable='roborama25_teleop_node',
+            package='rr26_stuff',
+            executable='rr26_teleop_node',
             name='teleop'
         ),
 
+        ##### MY ROBOT
+
         launch_ros.actions.Node(
-            package='roborama25_stuff',
-            executable='roborama25_wheel_controller_node',
-            name='wheel_controller'
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            parameters=[{
+                'robot_description':robot_desc,
+                }],
         ),
 
-        # launch_ros.actions.Node(
-        #     package='roborama25_stuff',
-        #     executable='robo24_diynav_node',
-        #     name='robo24_diynav'
-        # ),
+        launch_ros.actions.LifecycleNode(
+            package='rr26_stuff',
+            executable='rr26_front_sensors_node_lc',
+            name='front_sensors_node_lc',
+            namespace="",
+        ),
 
-        # launch_ros.actions.Node(
-        #     package='roborama25_stuff',
-        #     executable='robo24_diyslam_node',
-        #     name='robo24_diyslam'
-        # ),
+        launch_ros.actions.LifecycleNode(
+            package='rr26_stuff',
+            executable='rr26_wheel_controller_node_lc',
+            name='wheel_controller_node_lc',
+            namespace="",
+        ),
 
-        # launch_ros.actions.Node(
-        #     package='roborama25_stuff',
-        #     executable='robo24_imu_serial_node',
-        #     name='robo24_imu_serial'
-        # ),
+        launch_ros.actions.LifecycleNode(
+            package='rr26_stuff',
+            executable='rr26_controller_node_lc',
+            name='controller_node_lc',
+            namespace="",
+        ),
+        
+        launch_ros.actions.Node(
+            package="rr26_stuff",
+            executable="rr26_lifecycle_node_manager",
+            parameters=[
+                {"front_sensors_node_name": "front_sensors_node_lc"},
+                {"wheel_controller_node_name": "wheel_controller_node_lc"},
+                {"controller_node_name": "controller_node_lc"},
+            ]
+        ),
 
-        # launch_ros.actions.Node(
-        #     package='roborama25_stuff',
-        #     executable='robo24_watch_serial_node',
-        #     name='robo24_watch_serial'
-        # ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                os.path.join(get_package_share_directory('nav2_bringup'), 'launch'),
+                '/bringup_launch.py']),
+            launch_arguments={
+                'params_file': 'param/rr26_params.yaml',
+                "map": "maps/6can_course_home_map.yaml",
+            }.items()
+        ),
+        
+        launch_ros.actions.Node(
+            package='rr26_stuff',
+            executable='openmv_serial_node',
+            name='openmv_serial'
+        ),
+
+        launch_ros.actions.Node(
+            package='rr26_stuff',
+            executable='rr26_can_xy_node',
+            name='rr26_can_xy'
+        ),
 
         # Ros2 system stuff
-        # TODO: remove when integrated into roborama25_teleop
+        # TODO: remove when integrated into rr26_teleop
         launch_ros.actions.Node(
             package='teleop_twist_joy',
             executable='teleop_node',
