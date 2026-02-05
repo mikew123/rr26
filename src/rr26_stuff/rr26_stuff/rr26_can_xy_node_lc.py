@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # 4/18/2025 MRW copied from robo24_can_xy_node.property
+# 2/5/2026 MRW converted to LifecycleNode
 
 import rclpy
 import math
@@ -8,13 +9,16 @@ import time
 import numpy as np
 
 from rclpy.node import Node
+from rclpy.lifecycle import LifecycleNode
+from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
+from rclpy.executors import MultiThreadedExecutor
 from std_msgs.msg import String
 from tf2_ros.transform_broadcaster import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 
 from datetime import timedelta
 
-class Robo24CanXYNode(Node):
+class Robo24CanXYNodeLC(LifecycleNode):
     # parameters?
     #SVGA image is 800x600
     imgRngX = 800 #Pixels
@@ -34,16 +38,75 @@ class Robo24CanXYNode(Node):
     medianFilterDataY = [0.0,0.0,0.0,0.0,0.0]
     medianFilterDataT = [0.0,0.0,0.0,0.0,0.0]
 
+    lifecycle_state_active = False
+
     def __init__(self):
         super().__init__('robo24_can_xy_node')
 
+        self.get_logger().info(f"Robo24CanXYNodeLC: Started")
+
+    # Create ROS2 communications
+    def on_configure(self, previous_state: LifecycleState):
+        self.get_logger().info("IN on_configure")
+        
         self.openmv_msg_subscriber = self.create_subscription( String, 'openmv_msg', self.openmv_msg_callback, 10)
         self.tof8x8x3_msg_subscriber = self.create_subscription( String, 'tof8x8x3_msg', self.tof8x8x3_msg_callback, 10)
-        self.tofxydebug_msg_publisher = self.create_publisher(String, 'tofxydebug_msg', 10)
-        self.blobxydebug_msg_publisher = self.create_publisher(String, 'blobxydebug_msg', 10)
+        self.tofxydebug_msg_publisher = self.create_lifecycle_publisher(String, 'tofxydebug_msg', 10)
+        self.blobxydebug_msg_publisher = self.create_lifecycle_publisher(String, 'blobxydebug_msg', 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
-        self.get_logger().info(f"Robo24CanXYNode Started")
+        return TransitionCallbackReturn.SUCCESS
+
+    # Clean up stuff for cleanup, shutdown, error
+    def cleanup_lc(self):
+        self.destroy_lifecycle_publisher(self.tofxydebug_msg_publisher)
+        self.destroy_lifecycle_publisher(self.blobxydebug_msg_publisher)
+
+    def cleanup(self):
+        self.openmv_msg_subscriber = None
+        self.tof8x8x3_msg_subscriber = None
+        self.tf_broadcaster = None
+
+    # Destroy ROS2 communications
+    def on_cleanup(self, previous_state: LifecycleState):
+        self.get_logger().info("IN on_cleanup")
+        self.cleanup_lc()
+        self.cleanup()
+        return TransitionCallbackReturn.SUCCESS
+
+    # Activate/Enable HW
+    def on_activate(self, previous_state: LifecycleState):
+        self.get_logger().info("IN on_activate")
+        self.lifecycle_state_active = True
+        return super().on_activate(previous_state)
+
+    # Deactivate stuff used in shutdown, error
+    def deactivate(self):
+        self.lifecycle_state_active = False
+
+    # Deactivate/Disable HW
+    def on_deactivate(self, previous_state: LifecycleState):
+        self.get_logger().info("IN on_deactivate")
+        self.deactivate()
+        return super().on_deactivate(previous_state)
+
+    # Cleanup everything
+    def shutdown(self, previous_state: LifecycleState):
+        if(previous_state.label != "unconfigured"):
+            self.deactivate()
+            self.cleanup()
+
+    def on_shutdown(self, previous_state: LifecycleState):
+        self.get_logger().info(f"IN on_shutdown from {previous_state=}")
+        self.shutdown(previous_state)
+        return TransitionCallbackReturn.SUCCESS
+
+    # Process errors, deactivate + cleanup
+    def on_error(self, previous_state: LifecycleState):
+        self.get_logger().info(f"IN on_error from {previous_state=}")
+        self.shutdown(previous_state)
+        # do some checks, if ok, then return SUCCESS, if not FAILURE
+        return TransitionCallbackReturn.FAILURE
 
     # called when openmv detects a can blob
     # create a dynamic object XY that can be used to drive robo24
@@ -248,8 +311,9 @@ def medianFilter(dataArray, data) :
 def main(args=None):
     rclpy.init(args=args)
 
-    node = Robo24CanXYNode()
-    rclpy.spin(node)
+    node = Robo24CanXYNodeLC()
+    # MultiThread for life cycle operation
+    rclpy.spin(node, MultiThreadedExecutor())
     
     node.destroy_node()
     rclpy.shutdown()

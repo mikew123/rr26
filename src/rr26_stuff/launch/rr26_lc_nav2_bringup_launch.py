@@ -135,6 +135,20 @@ def generate_launch_description():
             namespace="",
         ),
         
+        launch_ros.actions.LifecycleNode(
+            package='rr26_stuff',
+            executable='rr26_openmv_serial_node_lc',
+            name='openmv_node_lc',
+            namespace="",
+        ),
+
+        launch_ros.actions.LifecycleNode(
+            package='rr26_stuff',
+            executable='rr26_can_xy_node_lc',
+            name='can_xy_node_lc',
+            namespace="",
+        ),
+        
         launch_ros.actions.Node(
             package="rr26_stuff",
             executable="rr26_lifecycle_node_manager",
@@ -143,6 +157,7 @@ def generate_launch_description():
                 {"wheel_controller_node_name": "wheel_controller_node_lc"},
                 {"controller_node_name": "controller_node_lc"},
                 {"openmv_node_name": "openmv_node_lc"},
+                {"can_xy_node_name": "can_xy_node_lc"},
             ]
         ),
 
@@ -154,18 +169,6 @@ def generate_launch_description():
                 'params_file': 'param/rr26_params.yaml',
                 "map": "maps/6can_course_home_map.yaml",
             }.items()
-        ),
-        
-        launch_ros.actions.Node(
-            package='rr26_stuff',
-            executable='rr26_openmv_serial_node_lc',
-            name='openmv_node_lc'
-        ),
-
-        launch_ros.actions.Node(
-            package='rr26_stuff',
-            executable='rr26_can_xy_node',
-            name='rr26_can_xy'
         ),
 
         # Ros2 system stuff
