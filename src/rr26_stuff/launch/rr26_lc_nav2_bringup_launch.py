@@ -142,7 +142,7 @@ def generate_launch_description():
                 {"front_sensors_node_name": "front_sensors_node_lc"},
                 {"wheel_controller_node_name": "wheel_controller_node_lc"},
                 {"controller_node_name": "controller_node_lc"},
-                {"openmv_node_name": "openmv_serial"},
+                {"openmv_node_name": "openmv_node_lc"},
             ]
         ),
 
@@ -158,8 +158,8 @@ def generate_launch_description():
         
         launch_ros.actions.Node(
             package='rr26_stuff',
-            executable='openmv_serial_node',
-            name='openmv_serial'
+            executable='rr26_openmv_serial_node_lc',
+            name='openmv_node_lc'
         ),
 
         launch_ros.actions.Node(

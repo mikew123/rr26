@@ -13,7 +13,7 @@ from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.executors import MultiThreadedExecutor
 
-class OpenmvSerialNode(LifecycleNode):
+class OpenmvSerialNodeLC(LifecycleNode):
     # parameters?
 
     timerRateHz = 50.0; # Rate to check serial port for messages
@@ -26,7 +26,7 @@ class OpenmvSerialNode(LifecycleNode):
     def __init__(self):
         super().__init__('openmv_serial_node')
 
-        self.get_logger().info(f"OpenmvSerialNode: Started")
+        self.get_logger().info(f"OpenmvSerialNodeLC: Started")
 
     # Create ROS2 communications, connect to HW
     def on_configure(self, previous_state: LifecycleState):
@@ -115,7 +115,7 @@ class OpenmvSerialNode(LifecycleNode):
 def main(args=None):
     rclpy.init(args=args)
 
-    node = OpenmvSerialNode()
+    node = OpenmvSerialNodeLC()
     # MultiThread for life cycle operation
     rclpy.spin(node, MultiThreadedExecutor())
     
