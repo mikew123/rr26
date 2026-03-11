@@ -15,6 +15,7 @@ from rclpy.executors import MultiThreadedExecutor
 from std_msgs.msg import String
 from tf2_ros.transform_broadcaster import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
+from sensor_msgs.msg import LaserScan
 
 from datetime import timedelta
 
@@ -51,8 +52,10 @@ class Robo24CanXYNodeLC(LifecycleNode):
         
         self.openmv_msg_subscriber = self.create_subscription( String, 'openmv_msg', self.openmv_msg_callback, 10)
         self.tof8x8x3_msg_subscriber = self.create_subscription( String, 'tof8x8x3_msg', self.tof8x8x3_msg_callback, 10)
+        self.scan_msg_subscriber = self.create_subscription( LaserScan, 'scan', self.scan_msg_callback, 10)
         self.tofxydebug_msg_publisher = self.create_lifecycle_publisher(String, 'tofxydebug_msg', 10)
         self.blobxydebug_msg_publisher = self.create_lifecycle_publisher(String, 'blobxydebug_msg', 10)
+        self.scan_obs_msg_publisher = self.create_lifecycle_publisher(LaserScan, 'scan_obs', 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
         return TransitionCallbackReturn.SUCCESS
@@ -61,10 +64,12 @@ class Robo24CanXYNodeLC(LifecycleNode):
     def cleanup_lc(self):
         self.destroy_lifecycle_publisher(self.tofxydebug_msg_publisher)
         self.destroy_lifecycle_publisher(self.blobxydebug_msg_publisher)
+        self.destroy_lifecycle_publisher(self.scan_obs_msg_publisher)
 
     def cleanup(self):
         self.openmv_msg_subscriber = None
         self.tof8x8x3_msg_subscriber = None
+        self.scan_msg_subscriber = None
         self.tf_broadcaster = None
 
     # Destroy ROS2 communications
@@ -107,6 +112,21 @@ class Robo24CanXYNodeLC(LifecycleNode):
         self.shutdown(previous_state)
         # do some checks, if ok, then return SUCCESS, if not FAILURE
         return TransitionCallbackReturn.FAILURE
+
+    # Lidar laser scan message callback
+    def scan_msg_callback(self, msg) -> None :
+        """
+        Process the Lidar scan data to remove the rays that include
+        the can that is being persued and create a scan_obs message
+        which is used for Nav2 obstacle avoidance
+        The idea is to not avoid approaching the can being persued
+
+        The can is initialy identified using the OpenMV camera blob detection
+        As the robot gets closer and the camera can not reliably ID it anymore 
+        the Lidar data is used to track the can and pull it into the can
+        catch basket
+        """
+        pass
 
     # called when openmv detects a can blob
     # create a dynamic object XY that can be used to drive robo24

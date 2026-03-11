@@ -33,3 +33,5 @@ alias arduino-cli=~/local/bin/arduino-cli
 alias rr26="clear; colcon build;\
     source install/setup.bash;\
     ros2 launch rr26_stuff rr26_lc_nav2_bringup_launch.py"
+
+alias kill_ros="source ~/rr26_ws/kill_ros.sh"
