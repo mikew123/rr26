@@ -1,3 +1,18 @@
+"""
+rr26_controller_node_lc.py
+This Life Cycle node executes the different competitions
+6 Can
+4 Corner
+Quick Trip
+Barrell racing
+
+The arenas can be different sizes when testing at home and during 
+competitions 
+
+The robot is started for each competion using the game controller buttons
+
+"""
+
 import rclpy
 import math
 import tf_transformations
@@ -51,6 +66,9 @@ class Roborama25ControllerNodeLc(LifecycleNode):
     gotoWaypoints = False
     gotoWaypoints_last = False
 
+    gotoBarrelRace = False
+    gotoBarrelRace_last = False
+
     gotoCan = False
     gotoCan_last = False
 
@@ -71,6 +89,10 @@ class Roborama25ControllerNodeLc(LifecycleNode):
     robotRadius:float = 0.180 # meters
     mapResolution:float = 0.05 # pixel size in meters
     
+    # dimensions of soda can
+    canHeight = 0.125
+    canRadius = 0.065/2
+
     # DPRG QT arena info in feet
     d:float = 12.0
     t:float = 1.25 # put in center of target zones
@@ -347,19 +369,45 @@ class Roborama25ControllerNodeLc(LifecycleNode):
             self.runQTrip() # Button B
         elif self.goto4CornerWaypoints==True and self.goto4CornerWaypoints_last==False :
             self.run4Corner() # Button A
+        elif self.gotoBarrelRace==True and self.gotoBarrelRace_last==False :
+            self.runBarrelRace() # Button Y
         elif self.gotoWaypoints==True and self.gotoWaypoints_last==False :
-            self.runWPoints() # Button Y
+            self.runWPoints() # Buttons both Y and B
         
         self.gotoWaypoints_last = self.gotoWaypoints
+        self.gotoBarrelRace_last = self.gotoBarrelRace
         self.goto4CornerWaypoints_last = self.goto4CornerWaypoints
         self.gotoQtWaypoints_last = self.gotoQtWaypoints
         self.gotoCan_last = self.gotoCan
 
+    # Barrell racing global variables
+    brState = -1
+    brState_next = 0
+    enable_br_states = False
+    def runBarrelRace(self) :
+        """
+        Button Y
+        """
+        
+        self.get_logger().info(f"runBarrelRace: {self.nav_arena=} started (button Y)")
+
+        self.createBRMap()
+        self.send_set_param_request(self.amcl_set_param_svc, 'tf_broadcast', False)
+
+        # Enables the Barrel Race can statemachine running in scan (Lidar) callback
+        self.enable_br_states = True
+
+        # Barrel Race runs when enable state is True using the scan (Lidar) callback
+        while self.enable_br_states==True and self.lifecycle_state_active==True :
+            time.sleep(0.1)
+                 
+        self.get_logger().info(f"runBarrelRace: Barrel Race state machine finished")
+
     def runWPoints(self) :
         """
-        button Y
+        both buttons Y and B
         """
-        self.get_logger().info(f"runWPoints: {self.nav_arena=} started (button Y)")
+        self.get_logger().info(f"runWPoints: {self.nav_arena=} started (buttons Y&B)")
         
         self.createWPMap()
         self.send_set_param_request(self.amcl_set_param_svc, 'tf_broadcast', False)
@@ -1672,6 +1720,10 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         resolution = 0.05
         self.publishEmptyMap(resolution, 10, 10, -5, -5)
 
+    def createBRMap(self) :        
+        resolution = 0.05
+        self.publishEmptyMap(resolution, 10, 10, -5, -5)
+
     def create4CMap(self) :        
         resolution = 0.05
         self.publishEmptyMap(resolution, 10, 10, -5, -5)
@@ -1740,10 +1792,11 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         game controller buttons select what to do
         """
         if self.XYLatched==False :
-            self.gotoWaypoints        = msg.buttons[3]==1 # 1 = Y button pushed
-            self.gotoCan              = msg.buttons[2]==1 # 1 = X button pushed
-            self.gotoQtWaypoints      = msg.buttons[1]==1 # 1 = B button pushed
-            self.goto4CornerWaypoints = msg.buttons[0]==1 # 1 = A button pushed
+            self.gotoWaypoints        = msg.buttons[3]==1 and msg.buttons[1]==1 # Y&B buttons pushed
+            self.gotoBarrelRace       = msg.buttons[3]==1 and msg.buttons[1]==0 # Y button pushed
+            self.gotoCan              = msg.buttons[2]==1 # X button pushed
+            self.gotoQtWaypoints      = msg.buttons[1]==1 and msg.buttons[3]==0 # B button pushed
+            self.goto4CornerWaypoints = msg.buttons[0]==1 # A button pushed
 
             # if   msg.buttons[3] : self.nav_ctrl["mode"] = "Waypoints"
             # elif msg.buttons[2] : self.nav_ctrl["mode"] = "6-can"

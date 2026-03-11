@@ -2,6 +2,18 @@
 This design is for the ROBORAMA 2026 Indoor robot competition<br>
 The 2025 robot hardware and code will be used with modifications.<br>
 The 2025 ROS based code will be reused, the NAV2 navigation code needs help to allow the robot to move faster.<br>
+
+## DPRG competitions
+This robot will compete in the following 4 contests. Barrell racing is a new attempt this year<br>
+- 6 Can<br>
+https://www.dprg.org/wp-content/uploads/2019/01/sixcan-20190119.pdf<br>
+- 4 Corner<br>
+https://www.dprg.org/wp-content/uploads/2018/09/four_corners-201804303.pdf<br>
+- Quick Trip<br>
+https://www.dprg.org/wp-content/uploads/2018/09/quick_trip_v20180130_3.pdf<br>
+- Barrell Race<br>
+https://www.dprg.org/wp-content/uploads/2025/03/barrel_racing_v20250320.pdf<br>
+
 ## Hardware modifications
 - The rear IR sensor array and front TOF sensor will be removed
 - The LIDAR will be lowered so that it can detect the cans on the field  as well as the walls (the 2025 LIDAR only detected the walls for localization and not the cans), this replaces the front TOF sensor and rear sensors.

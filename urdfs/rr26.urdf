@@ -136,7 +136,7 @@
     </visual>
   </link>
 
-  <joint name="imu_joint" type="fixed">
+<!--   <joint name="imu_joint" type="fixed">
     <parent link="base_link"/>
     <child link="imu_link"/>
     <origin xyz="0 0 0.055" rpy="0 0 0"/>
@@ -151,7 +151,8 @@
       <material name="red"/>
     </visual>
   </link>
-
+ -->
+ 
   <joint name="cam_joint" type="fixed">
     <parent link="base_link"/>
     <child link="cam_link"/>

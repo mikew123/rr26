@@ -17,6 +17,8 @@ from tf2_ros.transform_broadcaster import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import LaserScan
 
+from robo24_interfaces.msg import BarrelCans
+
 from datetime import timedelta
 
 class Robo24CanXYNodeLC(LifecycleNode):
@@ -124,8 +126,21 @@ class Robo24CanXYNodeLC(LifecycleNode):
         The can is initialy identified using the OpenMV camera blob detection
         As the robot gets closer and the camera can not reliably ID it anymore 
         the Lidar data is used to track the can and pull it into the can
-        catch basket
+        catch basket. This replaces the single point L4 range detector sensor by
+        Using the center rays for distance to object directly in front
+
+        The Lidar is also used for barrel racing, the camera blob detection is
+        not used. 3 cans are to be detected, but only 2 will be detected when a 
+        can blocks the can "behind" it
         """
+
+        # detect object in front for 6 can and provide distance.
+        # this replaces the TOF L4 range sensor that has a narrow detect angle.
+
+        # detect up to 3 cans for barrel racing and provide distance and angle (not xy).
+        # The center can can be up to 12 feet from the Lidar sensor at the start.
+        # and the cans are in an equal triangle about 6 to 8 ft from each other.
+
         pass
 
     # called when openmv detects a can blob
