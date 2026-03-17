@@ -16,7 +16,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/Claw.srv"
-  "msg/BarrelCans.msg"
+  "msg/Barrel.msg"
+  "msg/Barrels.msg"
 )
 
 if(BUILD_TESTING)
