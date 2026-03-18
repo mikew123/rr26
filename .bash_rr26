@@ -35,3 +35,5 @@ alias rr26="clear; colcon build;\
     ros2 launch rr26_stuff rr26_lc_nav2_bringup_launch.py"
 
 alias kill_ros="source ~/rr26_ws/kill_ros.sh"
+
+alias fox_bridge="ros2 launch foxglove_bridge foxglove_bridge_launch.xml"

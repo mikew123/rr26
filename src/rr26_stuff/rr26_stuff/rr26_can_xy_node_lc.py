@@ -123,6 +123,10 @@ class Robo24CanXYNodeLC(LifecycleNode):
         # do some checks, if ok, then return SUCCESS, if not FAILURE
         return TransitionCallbackReturn.FAILURE
 
+    maxBarrelDist = 0.8
+    minBarrelDist = 0.2
+    minJumpDist = 1.0
+
     def barrelDet(self, msg:LaserScan) -> None :
         """
         The Lidar is also used for barrel racing, the camera blob detection is
@@ -155,7 +159,8 @@ class Robo24CanXYNodeLC(LifecycleNode):
         iCnt = 0 # count of rays in valid sequence
         d = rays[nrays-1] # last ray before 1st ray for diff
         dLast = d
-        dDiff = 1.0
+        dDiff = self.minJumpDist
+        maxNumCnt = 0
 
         detActive = False #set when a sequence start is detected with a jump and valid dist
 
@@ -167,10 +172,10 @@ class Robo24CanXYNodeLC(LifecycleNode):
             d = rays[i]
             dDiff = abs(d - dLast)
 
-            dJmp = dDiff>=1.0 # jump in ray distance detected if >= 1 meter
+            dJmp = dDiff>=self.minJumpDist # jump in ray distance detected if >= 1 meter
 
             if detActive==False : # detection inactive wait for start jump
-                if dJmp==True and d<=1.0 and d>0.200:
+                if dJmp==True and d<=self.maxBarrelDist and d>self.minBarrelDist:
                     detActive = True
                     dMax = d
                     dMin = d
@@ -193,10 +198,10 @@ class Robo24CanXYNodeLC(LifecycleNode):
 
                 else : # possible end jump and/or start for sequential barrel detections
                     
-                    dDiff = (dMax-dMin)
+                    diff = (dMax-dMin)
                     # self.get_logger().info(f"barrelDet: Jump det {maxNumCnt=} {iCnt=} {iMin=} {iCntDiff=} {dMin=} {dMax=}")
 
-                    if dDiff<(barrelWidth/2) and iCntDiff<=2 : # end of valid sequence
+                    if diff<(barrelWidth/2) and iCntDiff<=2 : # end of valid sequence
                         detActive = False
                         a = iMin * ainc # angle to barrel
                         # convert 0 to 2pi to +=pi
@@ -206,9 +211,9 @@ class Robo24CanXYNodeLC(LifecycleNode):
                         b.distance = dMin + barrelWidth/2 # distance to the center of barrel
                         b.angle = a
                         brmsg.barrel.append(b)
-                        # self.get_logger().info(f"barrelDet: End jump {b=} {i=} {maxNumCnt=} {iCnt=} {iMin=} {dMin=} {dDiff=}")
+                        # self.get_logger().info(f"barrelDet: End jump {b=} {i=} {maxNumCnt=} {iCnt=} {iMin=} {dMin=} {diff=}")
 
-                    if d<1.0 and d>0.200 : # also start jump for next sequence
+                    if d<self.maxBarrelDist and d>self.minBarrelDist : # also start jump for next sequence
                         detActive = True
                         dMax = d
                         dMin = d
@@ -216,6 +221,47 @@ class Robo24CanXYNodeLC(LifecycleNode):
                         iCnt = 0
                         # self.get_logger().info(f"barrelDet: Start Jump B {i=} {d=} {maxNumCnt=}")
         # end of for loop
+
+        # continue sequence processing if active
+        i = -1
+
+        while detActive==True :
+            i+=1
+            iCnt +=1
+
+            dLast = d
+            d = rays[i]
+            dDiff = abs(d - dLast)
+
+            # find end of sequence
+            dJmp = dDiff>=self.minJumpDist # jump in ray distance detected if >= 1 meter
+            if dJmp == False :
+                if d>dMax :
+                    dMax = d
+
+                if d<dMin :
+                    dMin = d
+                    iMin = i
+
+            else : # end of sequence jump detected
+                maxNumCnt = int(math.atan(barrelWidth/dMin)/ainc)
+                iCntDiff = abs(iCnt-maxNumCnt)
+                diff = (dMax-dMin)
+                # self.get_logger().info(f"barrelDet: Jump det B {maxNumCnt=} {iCnt=} {iMin=} {iCntDiff=} {dMin=} {dMax=}")
+
+                if diff<(barrelWidth/2) and iCntDiff<=2 : # end of valid sequence
+                    detActive = False
+                    a = iMin * ainc # angle to barrel
+                    # convert 0 to 2pi to +=pi
+                    if a>math.pi :
+                        a-= 2*math.pi
+                    b = Barrel()
+                    b.distance = dMin + barrelWidth/2 # distance to the center of barrel
+                    b.angle = a
+                    brmsg.barrel.append(b)
+                    self.get_logger().info(f"barrelDet: End jump {b=} {i=} {maxNumCnt=} {iCnt=} {iMin=} {dMin=} {diff=}")
+
+                detActive=False # End jump detected
 
         self.barrels_msg_publisher.publish(brmsg)
 
