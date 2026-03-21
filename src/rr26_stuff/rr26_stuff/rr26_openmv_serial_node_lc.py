@@ -112,15 +112,22 @@ class OpenmvSerialNodeLC(LifecycleNode):
             self.openmv_msg_publisher.publish(emsg)
 
 
-def main(args=None):
-    rclpy.init(args=args)
+# def main(args=None):
+#     rclpy.init(args=args)
 
-    node = OpenmvSerialNodeLC()
-    # MultiThread for life cycle operation
-    rclpy.spin(node, MultiThreadedExecutor())
+#     node = OpenmvSerialNodeLC()
+#     # MultiThread for life cycle operation
+#     rclpy.spin(node, MultiThreadedExecutor())
     
-    node.destroy_node()
-    rclpy.shutdown()
+#     node.destroy_node()
+#     rclpy.shutdown()
+
+def main() :
+    with rclpy.init() as ctx:
+        node = OpenmvSerialNodeLC()
+        rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+        # No need to call shutdown
+
 
 # This code is needed to run .py file directly
 if __name__ == '__main__':

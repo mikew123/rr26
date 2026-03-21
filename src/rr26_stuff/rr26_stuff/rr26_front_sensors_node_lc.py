@@ -398,16 +398,22 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
         )
 
 
-def main(args=None):
-    rclpy.init(args=args)
+# def main(args=None):
+#     rclpy.init(args=args)
 
-    node = Roborama25FrontSensorsNodeLC()
-    #rclpy.spin(node)
-    # MultiThread for life cycle operation
-    rclpy.spin(node, MultiThreadedExecutor()) 
+#     node = Roborama25FrontSensorsNodeLC()
+#     #rclpy.spin(node)
+#     # MultiThread for life cycle operation
+#     rclpy.spin(node, MultiThreadedExecutor()) 
     
-    node.destroy_node()
-    rclpy.shutdown()
+#     node.destroy_node()
+#     rclpy.shutdown()
+
+def main() :
+    with rclpy.init() as ctx:
+        node = Roborama25FrontSensorsNodeLC()
+        rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+        # No need to call shutdown
 
 # This code is needed to run .py file directly
 if __name__ == '__main__':

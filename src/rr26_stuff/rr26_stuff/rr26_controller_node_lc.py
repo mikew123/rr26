@@ -1940,19 +1940,27 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         #     self.get_logger().info(f"joy_callback: XYAB button pushed {msg=} {self.gotoCan=}")
             
 
-def main(args=None):
-    rclpy.init(args=args)
+# def main(args=None):
+#     rclpy.init(args=args)
 
-    # Create instance and pass handle to the controller node
-    nav = BasicNavigator()
-    node = Roborama25ControllerNodeLc(nav)
+#     # Create instance and pass handle to the controller node
+#     nav = BasicNavigator()
+#     node = Roborama25ControllerNodeLc(nav)
 
-    # rclpy.spin(node)
-    # MultiThread for life cycle operation
-    rclpy.spin(node, MultiThreadedExecutor()) 
+#     # rclpy.spin(node)
+#     # MultiThread for life cycle operation
+#     rclpy.spin(node, MultiThreadedExecutor()) 
     
-    node.destroy_node()
-    rclpy.shutdown()
+#     node.destroy_node()
+#     rclpy.shutdown()
+
+def main() :
+    with rclpy.init() as ctx:
+        # Create instance and pass handle to the controller node
+        nav = BasicNavigator()
+        node = Roborama25ControllerNodeLc(nav)
+        rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+        # No need to call shutdown
 
 # This code is needed to run .py file directly
 if __name__ == '__main__':
