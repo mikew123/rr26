@@ -289,6 +289,8 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
             xy[0] = self.xy_last[0] + (dRL * math.cos(-xy[2])) #X
             xy[1] = self.xy_last[1] + (dRL * math.sin(-xy[2])) #Y
             #-------------------------------------------------------------------------
+            
+            # self.get_logger().info(f"encoders_msg_callback: {xy=}")
 
         if self.tf_enable == True :
             self.broadcast_tf(xy[0], xy[1], -xy[2]) # x,y,theta

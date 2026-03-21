@@ -259,7 +259,7 @@ class Robo24CanXYNodeLC(LifecycleNode):
                     b.distance = dMin + barrelWidth/2 # distance to the center of barrel
                     b.angle = a
                     brmsg.barrel.append(b)
-                    self.get_logger().info(f"barrelDet: End jump {b=} {i=} {maxNumCnt=} {iCnt=} {iMin=} {dMin=} {diff=}")
+                    # self.get_logger().info(f"barrelDet: End jump {b=} {i=} {maxNumCnt=} {iCnt=} {iMin=} {dMin=} {diff=}")
 
                 detActive=False # End jump detected
 

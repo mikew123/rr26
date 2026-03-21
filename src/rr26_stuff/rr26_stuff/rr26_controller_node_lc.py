@@ -13,6 +13,8 @@ The robot is started for each competion using the game controller buttons
 
 """
 
+from asyncio.format_helpers import _format_callback_source
+
 import rclpy
 import math
 import tf_transformations
@@ -42,6 +44,7 @@ from geometry_msgs.msg import Pose, PoseStamped, PoseWithCovarianceStamped
 
 from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Quaternion
 
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 from tf2_ros import Duration
@@ -54,6 +57,8 @@ from sensor_msgs.msg import PointCloud2, Range
 from sensor_msgs_py import point_cloud2
 
 from std_msgs.msg import String, Int32, Float32, Header
+
+from robo24_interfaces.msg import Barrels, Barrel
 
 class Roborama25ControllerNodeLc(LifecycleNode):
     """
@@ -246,11 +251,11 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         
         self.joy_subscription = self.create_subscription(Joy, '/joy', self.joy_callback, 
                                                                 10, callback_group=self.cb_group_mx)
-        self.tofL4_rng_subscription = self.create_subscription(Range, '/tofL4_rng', self.tofL4_rng_callback, 
-                                                                10, callback_group=self.cb_group_nav2_run)
         self.tofL5L_pcd_subscription = self.create_subscription(PointCloud2, '/tofL5L_pcd', self.tofL5L_pcd_callback, 
                                                                 10, callback_group=self.cb_group_re)
         self.tofL5R_pcd_subscription = self.create_subscription(PointCloud2, '/tofL5R_pcd', self.tofL5R_pcd_callback, 
+                                                                10, callback_group=self.cb_group_re)
+        self.barrels_subscription = self.create_subscription(Barrels, '/barrels', self.barrels_callback, 
                                                                 10, callback_group=self.cb_group_re)
 
         self.get_logger().info(f"rr26_controller_node Started {self.nav_arena=}")
@@ -381,8 +386,6 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         self.gotoCan_last = self.gotoCan
 
     # Barrell racing global variables
-    brState = -1
-    brState_next = 0
     enable_br_states = False
     def runBarrelRace(self) :
         """
@@ -402,6 +405,104 @@ class Roborama25ControllerNodeLc(LifecycleNode):
             time.sleep(0.1)
                  
         self.get_logger().info(f"runBarrelRace: Barrel Race state machine finished")
+
+    # Barrel race stuff
+    brTimer = 0.0
+    curr_brState:str = ""
+    next_brState:str = "init"
+    brLinX = 0.5
+
+    def deg2rad(self, deg:float) -> float :
+        return ((deg/180.0) * math.pi)
+    
+    def barrels_callback(self, msg:Barrels) -> None:
+        """
+        Barrel racing is run on the /barrels topic callback which is published
+        every /scan Lidar topic.
+        The /barrels topic has a list of detected barrels distance and angle 
+        from the robot center (Lidar)
+
+        """
+
+        # default no movement
+        linX:float = 0.0
+        angZ:float = 0.0
+
+        # initialize when the button is pressed
+        if self.gotoBarrelRace==True and self.gotoBarrelRace_last==False :
+            self.barrelRaceActive = True
+
+
+        stateChange = False
+        if self.enable_br_states==True :
+            current_time = self.get_clock().now()
+
+            if self.curr_brState!=self.next_brState :
+                stateChange = True
+                self.brStartTime = current_time
+                self.get_logger().info(f"barrels_callback: state change {self.curr_brState} -> {self.next_brState}")
+
+            elapsed_time = (current_time - self.brStartTime).nanoseconds / 1e9
+
+            state:str = self.next_brState
+            next_state:str = state # default no state change
+
+            # get current robot pose x,y,angle from start
+            current_pose:PoseStamped=None
+            q:Quaternion=None
+            (tf_OK,current_pose) = self.getCurrentPose()
+            q = current_pose.pose.orientation
+            # convert quaterion to euler
+            (_,_,z) = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+            currentAngle = z
+            currentX = current_pose.pose.position.x
+            currentY = current_pose.pose.position.x
+
+            if state=="init" :
+                # Initialize 
+                next_state = "start"
+            
+            elif state=="start" :
+                # Drive 2ft to start line
+                linX = self.brLinX
+                angZ = 0.0
+                dist = 2.0*self.feetToMeter # 2 feet to start line
+                maxTime = dist/linX
+
+                if elapsed_time>=maxTime:
+                    next_state = "gotoCan1"
+
+            elif state=="gotoCan1" :
+                # Drive in 2.5ft arc towards Can 1, stop at 80 degrees
+                linX = self.brLinX
+                # angZ = 0.35 * 2
+                targetAngle = self.deg2rad(80.0)
+                angZ = linX * targetAngle
+                maxTime = 45.0 #3.0
+
+                if currentAngle>=targetAngle or elapsed_time>=maxTime:
+                    next_state = "end"
+
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {targetAngle=} {maxTime=} {linX=} {angZ=}")
+                
+            elif state=="end" :
+                self.enable_br_states = False
+                next_state = "init"
+                linX = 0.0
+                angZ = 0.0
+
+
+            # update robot movement
+            cmd_vel = Twist()
+            cmd_vel.linear.x = linX
+            cmd_vel.angular.z = angZ
+            self.cmd_vel_publisher.publish(cmd_vel)
+
+            # Update persistant state variables
+            self.next_brState = next_state
+            self.curr_brState = state
+            
+
 
     def runWPoints(self) :
         """
@@ -1039,7 +1140,7 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         """
         canDet:bool = False
 
-        dist = self.tofL4_rng
+        # dist = self.tofL4_rng
         Lnum = 0
         Rnum = 0
         distCanDet = 0.125
@@ -1067,7 +1168,7 @@ class Roborama25ControllerNodeLc(LifecycleNode):
 ################################### 6CAN stuff ##########################    
 
     
-    tofL4_rng = None
+    # tofL4_rng = None
     tofL5L_pcd = None
     tofL5R_pcd = None
     changed_6can_state = False
@@ -1224,7 +1325,8 @@ class Roborama25ControllerNodeLc(LifecycleNode):
             return next_state
         
         
-        dist = self.tofL4_rng
+        # dist = self.tofL4_rng
+
         # distMin = 1000.0
         # distMinL = distMin
         # distMinR = distMin
@@ -1503,15 +1605,15 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         self.enable_6can_states = False
         return next_state
 
-    # Sensors used to run 6 CAN
-    def tofL4_rng_callback(self, msg: Range) :
-        """
-        Front range sensor message
-        This sensor is used for the final can approach after T5 sensors quit detecting
-        This call back also runs the 6 can state machine
-        """
-        self.tofL4_rng = msg.range
-        self.run_6can_states()
+    # # Sensors used to run 6 CAN
+    # def tofL4_rng_callback(self, msg: Range) :
+    #     """
+    #     Front range sensor message
+    #     This sensor is used for the final can approach after T5 sensors quit detecting
+    #     This call back also runs the 6 can state machine
+    #     """
+    #     self.tofL4_rng = msg.range
+    #     self.run_6can_states()
         
     def tofL5L_pcd_callback(self, msg: PointCloud2) :
         """
