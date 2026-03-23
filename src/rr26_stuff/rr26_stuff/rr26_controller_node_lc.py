@@ -273,8 +273,6 @@ class Roborama25ControllerNodeLc(LifecycleNode):
         self.nav.waitUntilNav2Active()
         self.get_logger().info(f"on_configure: waitUntilNav2Active done")   
 
-        # publish the map 1/sec
-        # self.map_timer = self.create_timer(1.0, self.on_map_timer)
         self.map_timer = self.create_timer(0.1, self.nav2_run, callback_group=self.cb_group_mx)
         self.map_timer.cancel()
         
@@ -307,10 +305,14 @@ class Roborama25ControllerNodeLc(LifecycleNode):
 
     # Activate/Enable HW
     def on_activate(self, previous_state: LifecycleState):
-        self.lifecycle_state_active = True
+        
         self.get_logger().info("IN on_activate")
         self.map_timer.reset()
         
+        initial_pose = self.createPose(0,0,0)
+        self.setInitialPose(initial_pose)    
+       
+        self.lifecycle_state_active = True
         return super().on_activate(previous_state)
 
         
@@ -1954,13 +1956,30 @@ class Roborama25ControllerNodeLc(LifecycleNode):
 #     node.destroy_node()
 #     rclpy.shutdown()
 
-def main() :
-    with rclpy.init() as ctx:
-        # Create instance and pass handle to the controller node
+# def main() :
+#     with rclpy.init() as ctx:
+#         # Create instance and pass handle to the controller node
+#         nav = BasicNavigator()
+#         node = Roborama25ControllerNodeLc(nav)
+#         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+#         # No need to call shutdown
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = None
+    
+    try:
         nav = BasicNavigator()
         node = Roborama25ControllerNodeLc(nav)
         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
-        # No need to call shutdown
+        # No need to call shutdown)
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
+    finally:
+        if node is not None:
+            node.destroy_node()
+        # rclpy.shutdown()
+
 
 # This code is needed to run .py file directly
 if __name__ == '__main__':

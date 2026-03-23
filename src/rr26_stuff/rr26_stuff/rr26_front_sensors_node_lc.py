@@ -24,6 +24,9 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+
 class Roborama25FrontSensorsNodeLC(LifecycleNode):
     # parameters?
 
@@ -47,10 +50,13 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
     # Create ROS2 communications, connect to HW
     def on_configure(self, previous_state: LifecycleState):
         self.get_logger().info("IN on_configure")
-        
-        self.sensor_serial_port = serial.Serial(None, 2000000)
 
-        self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.serial_timer_callback)
+        self.cb_group = MutuallyExclusiveCallbackGroup()
+
+        self.sensor_serial_port = serial.Serial(None, 2000000) # USB serial
+
+        self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.serial_timer_callback
+                                                , callback_group=self.cb_group)
         self.serial_timer.cancel()
         
         # There is no lifecycle support for subscription
@@ -94,11 +100,13 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
 
     # Activate/Enable HW
     def on_activate(self, previous_state: LifecycleState):
+        
         self.get_logger().info("IN on_activate")
         self.serial_timer.reset()
-
+        
         self.sensor_serial_port.port = self.serial_port
         self.sensor_serial_port.open() #= serial.Serial(self.serial_port, 2000000)
+        self.sensor_serial_port.reset_input_buffer() # empty buffer
         # configure interface
         self.sensor_serial_port.write(f"MODE ROS2\n".encode()) 
         self.sensor_serial_port.write(f"MODE ROS2\n".encode()) # extra write for startup
@@ -141,22 +149,31 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
 
     # check serial port at timerRateHz and parse out messages to publish
     def serial_timer_callback(self):
+        if self.lifecycle_state_active!=True : return
+
         # Check if a line has been received on the serial port
-        if self.sensor_serial_port.in_waiting > 0:
-            received_data = self.sensor_serial_port.readline().decode().strip()
-            #self.get_logger().info(f"Received: {received_data}")
-            
-            strArray = received_data.split(" ")
-            if strArray[0]=="L5" :
-                self.L5_processing(strArray)
-            elif strArray[0]=="IMU" :
-                self.IMU_processing(strArray)
-            elif strArray[0]=="CAL" :
-                self.CAL_processing(strArray)
-            elif strArray[0]=="BT":
-                self.BT_processing(strArray)
-            else :
-                self.get_logger().error(f"Invalid serial sensor message {received_data=}")
+        try :
+            while self.sensor_serial_port.in_waiting > 0:
+                received_data = self.sensor_serial_port.readline().decode().strip()
+                #self.get_logger().info(f"Received: {received_data}")
+                
+                strArray = received_data.split(" ")
+                # if strArray[0]=="L5" :
+                #     self.L5_processing(strArray)
+                # elif strArray[0]=="IMU" :
+                #     self.IMU_processing(strArray)
+                # elif strArray[0]=="CAL" :
+                #     self.CAL_processing(strArray)
+                # elif strArray[0]=="BT":
+                #     self.BT_processing(strArray)
+                # else :
+                #     self.get_logger().error(f"Invalid serial sensor message {received_data=}")
+
+        except Exception as ex:
+            self.get_logger().warning(f"front sensors timer serial read exception {ex}")
+            self.sensor_serial_port.close()
+            self.sensor_serial_port.open()
+            return
 
     def cmd_vel_callback(self, msg):
         """
@@ -409,11 +426,27 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
 #     node.destroy_node()
 #     rclpy.shutdown()
 
-def main() :
-    with rclpy.init() as ctx:
+# def main() :
+#     with rclpy.init() as ctx:
+#         node = Roborama25FrontSensorsNodeLC()
+#         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+#         # No need to call shutdown
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = None
+    
+    try:
         node = Roborama25FrontSensorsNodeLC()
         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
-        # No need to call shutdown
+        # No need to call shutdown)
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
+    finally:
+        if node is not None:
+            node.destroy_node()
+        # rclpy.shutdown()
+
 
 # This code is needed to run .py file directly
 if __name__ == '__main__':

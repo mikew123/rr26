@@ -91,6 +91,7 @@ class Robo24CanXYNodeLC(LifecycleNode):
 
     # Activate/Enable HW
     def on_activate(self, previous_state: LifecycleState):
+        
         self.get_logger().info("IN on_activate")
         self.lifecycle_state_active = True
         return super().on_activate(previous_state)
@@ -515,6 +516,21 @@ def main() :
         node = Robo24CanXYNodeLC()
         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
         # No need to call shutdown
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = None
+    
+    try:
+        node = Robo24CanXYNodeLC()
+        rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+        # No need to call shutdown)
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
+    finally:
+        if node is not None:
+            node.destroy_node()
+        # rclpy.shutdown()
 
 # This code is needed to run .py file directly
 if __name__ == '__main__':

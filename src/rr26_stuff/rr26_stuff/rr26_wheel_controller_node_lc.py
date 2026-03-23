@@ -28,6 +28,9 @@ from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from lifecycle_msgs.srv import GetState
 
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+
 import asyncio
 
 class Roborama25WheelControllerNodeLC(LifecycleNode):
@@ -92,9 +95,12 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
     def on_configure(self, previous_state: LifecycleState):
         self.get_logger().info(f"IN on_configure")
         
-        self.wheel_serial_port = serial.Serial(None, 115200)
+        self.cb_group = MutuallyExclusiveCallbackGroup()
 
-        self.serial_timer = self.create_timer((1.0/self.serialTimerRateHz), self.serial_timer_callback)
+        self.wheel_serial_port = serial.Serial(None, 2000000) # USB serial
+
+        self.serial_timer = self.create_timer((1.0/self.serialTimerRateHz), self.serial_timer_callback
+                                              , callback_group=self.cb_group)
         self.serial_timer.cancel()
         
         # There is no lifecycle support for subscription
@@ -135,12 +141,14 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
 
     # Activate/Enable HW
     def on_activate(self, previous_state: LifecycleState):
+        
         self.get_logger().info("IN on_activate")
         self.serial_timer.reset()
         
         # configure serial interface
         self.wheel_serial_port.port = self.wheel_serial_port_name
         self.wheel_serial_port.open()
+        self.wheel_serial_port.reset_input_buffer() # empty buffer
         self.wheel_serial_port.write("CP 0 1000\n".encode()) # Extra write to wait a tiny bit
         self.wheel_serial_port.write(f"OR {self.odometryRateHz}\n".encode())
         self.wheel_serial_port.write(f"WO {self.fwdPullOffset} {self.revPullOffset}\n".encode())
@@ -420,7 +428,7 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
 
         # Check if a line has been received on the serial port
         try :
-            if self.wheel_serial_port.in_waiting > 0:
+            while self.wheel_serial_port.in_waiting > 0:
                 received_data = self.wheel_serial_port.readline().decode().strip()
                 #self.get_logger().info(f"Received: {received_data}")
                 
@@ -428,7 +436,7 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
                 emsg = String()
                 emsg.data = received_data
                 # assume it is an OD encoder message
-                self.encoders_msg_publisher.publish(emsg)
+                #self.encoders_msg_publisher.publish(emsg)
 
         except Exception as ex:
             self.get_logger().warning(f"wheel controller timer serial read exception {ex}")
@@ -502,11 +510,25 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
 #     node.destroy_node()
 #     rclpy.shutdown()
 
-def main() :
-    with rclpy.init() as ctx:
+# def main() :
+#     with rclpy.init() as ctx:
+#         node = Roborama25WheelControllerNodeLC()
+#         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+#         # No need to call shutdown
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = None
+    
+    try:
         node = Roborama25WheelControllerNodeLC()
-        rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
-        # No need to call shutdown
+        rclpy.spin(node, MultiThreadedExecutor())
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
+    finally:
+        if node is not None:
+            node.destroy_node()
+        # rclpy.shutdown()
 
 
 # This code is needed to run .py file directly

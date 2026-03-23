@@ -13,6 +13,9 @@ from rclpy.lifecycle import LifecycleNode
 from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
 from rclpy.executors import MultiThreadedExecutor
 
+from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+
 class OpenmvSerialNodeLC(LifecycleNode):
     # parameters?
 
@@ -31,10 +34,13 @@ class OpenmvSerialNodeLC(LifecycleNode):
     # Create ROS2 communications, connect to HW
     def on_configure(self, previous_state: LifecycleState):
         self.get_logger().info("IN on_configure")
-        
+
+        self.cb_group = MutuallyExclusiveCallbackGroup()
+
         self.openmv_serial_port = serial.Serial(None, 115200)
 
-        self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.timer_callback)
+        self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.timer_callback
+                                              , callback_group=self.cb_group)
         self.serial_timer.cancel()
 
         self.openmv_msg_publisher = self.create_lifecycle_publisher(String, 'openmv_msg', 10)
@@ -58,9 +64,10 @@ class OpenmvSerialNodeLC(LifecycleNode):
 
     # Activate/Enable HW
     def on_activate(self, previous_state: LifecycleState):
+        
         self.get_logger().info("IN on_activate")
         self.serial_timer.reset()
-
+        
         self.openmv_serial_port.port = self.serial_port
         self.openmv_serial_port.open()
 
@@ -122,11 +129,26 @@ class OpenmvSerialNodeLC(LifecycleNode):
 #     node.destroy_node()
 #     rclpy.shutdown()
 
-def main() :
-    with rclpy.init() as ctx:
+# def main() :
+#     with rclpy.init() as ctx:
+#         node = OpenmvSerialNodeLC()
+#         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
+#         # No need to call shutdown
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = None
+    
+    try:
         node = OpenmvSerialNodeLC()
         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
-        # No need to call shutdown
+        # No need to call shutdown)
+    except KeyboardInterrupt:
+        pass  # Handle Ctrl+C gracefully
+    finally:
+        if node is not None:
+            node.destroy_node()
+        # rclpy.shutdown()
 
 
 # This code is needed to run .py file directly
