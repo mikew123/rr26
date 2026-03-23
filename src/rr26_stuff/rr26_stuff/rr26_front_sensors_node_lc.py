@@ -149,15 +149,17 @@ class Roborama25FrontSensorsNodeLC(LifecycleNode):
 
     # check serial port at timerRateHz and parse out messages to publish
     def serial_timer_callback(self):
-        if self.lifecycle_state_active!=True : return
-
+        if not self.lifecycle_state_active : return
+        return
+    
         # Check if a line has been received on the serial port
         try :
             while self.sensor_serial_port.in_waiting > 0:
+
                 received_data = self.sensor_serial_port.readline().decode().strip()
                 #self.get_logger().info(f"Received: {received_data}")
                 
-                strArray = received_data.split(" ")
+                # strArray = received_data.split(" ")
                 # if strArray[0]=="L5" :
                 #     self.L5_processing(strArray)
                 # elif strArray[0]=="IMU" :
@@ -445,7 +447,7 @@ def main(args=None):
     finally:
         if node is not None:
             node.destroy_node()
-        # rclpy.shutdown()
+        # rclpy.shutdown() # already shutdown in lifecycle context
 
 
 # This code is needed to run .py file directly

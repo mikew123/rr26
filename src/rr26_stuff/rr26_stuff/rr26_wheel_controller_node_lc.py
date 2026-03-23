@@ -425,18 +425,20 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
     # TODO: actually parse the messages (currently only OD encoder messages)
     def serial_timer_callback(self):
         if not self.lifecycle_state_active : return
-
+        return
+    
         # Check if a line has been received on the serial port
         try :
             while self.wheel_serial_port.in_waiting > 0:
+                
                 received_data = self.wheel_serial_port.readline().decode().strip()
                 #self.get_logger().info(f"Received: {received_data}")
                 
                 # Publish the received serial line as a String message
-                emsg = String()
-                emsg.data = received_data
+                # emsg = String()
+                # emsg.data = received_data
                 # assume it is an OD encoder message
-                #self.encoders_msg_publisher.publish(emsg)
+                # self.encoders_msg_publisher.publish(emsg)
 
         except Exception as ex:
             self.get_logger().warning(f"wheel controller timer serial read exception {ex}")
@@ -528,7 +530,7 @@ def main(args=None):
     finally:
         if node is not None:
             node.destroy_node()
-        # rclpy.shutdown()
+        # rclpy.shutdown() # already shutdown in lifecycle context
 
 
 # This code is needed to run .py file directly

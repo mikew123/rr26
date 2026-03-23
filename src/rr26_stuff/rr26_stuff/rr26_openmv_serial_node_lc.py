@@ -106,7 +106,9 @@ class OpenmvSerialNodeLC(LifecycleNode):
 
     # check serial port at timerRateHz and parse out messages to publish
     def timer_callback(self):
-        
+        if not self.lifecycle_state_active : return
+        return
+    
         # Check if a line has been received on the serial port
         if self.openmv_serial_port.in_waiting > 0:
             received_data = self.openmv_serial_port.readline().decode().strip()
@@ -148,7 +150,7 @@ def main(args=None):
     finally:
         if node is not None:
             node.destroy_node()
-        # rclpy.shutdown()
+        # rclpy.shutdown() # already shutdown in lifecycle context
 
 
 # This code is needed to run .py file directly
