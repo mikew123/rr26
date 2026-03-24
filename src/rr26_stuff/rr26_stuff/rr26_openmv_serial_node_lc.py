@@ -107,7 +107,7 @@ class OpenmvSerialNodeLC(LifecycleNode):
     # check serial port at timerRateHz and parse out messages to publish
     def timer_callback(self):
         if not self.lifecycle_state_active : return
-        return
+        # return
     
         # Check if a line has been received on the serial port
         if self.openmv_serial_port.in_waiting > 0:
