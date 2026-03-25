@@ -116,8 +116,8 @@ def generate_launch_description():
 
         launch_ros.actions.LifecycleNode(
             package='rr26_stuff',
-            executable='rr26_front_sensors_node_lc',
-            name='front_sensors_node_lc',
+            executable='rr26_front_sensors_node',
+            name='front_sensors_node',
             namespace="",
         ),
 
@@ -153,7 +153,6 @@ def generate_launch_description():
             package="rr26_stuff",
             executable="rr26_lifecycle_node_manager",
             parameters=[
-                {"front_sensors_node_name": "front_sensors_node_lc"},
                 {"wheel_controller_node_name": "wheel_controller_node_lc"},
                 {"controller_node_name": "controller_node_lc"},
             ]

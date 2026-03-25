@@ -17,33 +17,26 @@ class Roborama25LifecycleNodeManager(Node):
         super().__init__("rr26_lifecycle_node_manager")
         
         # Get life cycle managed node parameters
-        self.declare_parameter("front_sensors_node_name", "sensors")
         self.declare_parameter("wheel_controller_node_name", "wheels")
         self.declare_parameter("controller_node_name", "controller")
 
-        front_sensors_node_name = self.get_parameter("front_sensors_node_name").value
         wheels_controller_node_name = self.get_parameter("wheel_controller_node_name").value
         controller_node_name = self.get_parameter("controller_node_name").value
         
-        front_sensors_service_change_state_name = "/" + front_sensors_node_name + "/change_state"
         wheels_controller_service_change_state_name = "/" + wheels_controller_node_name + "/change_state"
         controller_service_change_state_name = "/" + controller_node_name + "/change_state"
 
-        self.front_sensors_change_state_client = self.create_client(ChangeState, front_sensors_service_change_state_name)
         self.wheels_controller_change_state_client = self.create_client(ChangeState, wheels_controller_service_change_state_name)
         self.controller_change_state_client = self.create_client(ChangeState, controller_service_change_state_name)
         
-        front_sensors_service_get_state_name = "/" + front_sensors_node_name + "/get_state"
         wheels_controller_service_get_state_name = "/" + wheels_controller_node_name + "/get_state"
         controller_service_get_state_name = "/" + controller_node_name + "/get_state"
 
-        self.front_sensors_get_state_client = self.create_client(GetState, front_sensors_service_get_state_name)
         self.wheels_controller_get_state_client = self.create_client(GetState, wheels_controller_service_get_state_name)
         self.controller_get_state_client = self.create_client(GetState, controller_service_get_state_name)
         
         self.get_logger().info(f"""
         lifecycle_node_manager: Initialized 
-        {front_sensors_service_change_state_name=} 
         {wheels_controller_service_change_state_name=} 
         {controller_service_change_state_name=}
         """)
@@ -65,13 +58,11 @@ class Roborama25LifecycleNodeManager(Node):
         # rclpy.spin_until_future_complete(self, future) # removed since polling for state
     
     def poll_wait_state(self, state: str) :
-        front_sensors_state=""
         wheels_controller_state=""
         controller_state=""
-        while not((front_sensors_state == state) and (wheels_controller_state == state) and (controller_state == state)) :
+        while not((wheels_controller_state == state) and (controller_state == state)) :
             time.sleep(0.1)
-            self.get_logger().info(f"{front_sensors_state=} {wheels_controller_state=} {controller_state=}")
-            front_sensors_state = self.get_state(self.front_sensors_get_state_client)
+            self.get_logger().info(f"{wheels_controller_state=} {controller_state=}")
             wheels_controller_state = self.get_state(self.wheels_controller_get_state_client)
             controller_state = self.get_state(self.controller_get_state_client)
 
@@ -83,7 +74,6 @@ class Roborama25LifecycleNodeManager(Node):
         transition = Transition()
         transition.id = Transition.TRANSITION_CONFIGURE
         transition.label = "configure"
-        self.change_state(transition, self.front_sensors_change_state_client)
         self.change_state(transition, self.wheels_controller_change_state_client)
         self.change_state(transition, self.controller_change_state_client)
         self.poll_wait_state("inactive")
@@ -93,7 +83,6 @@ class Roborama25LifecycleNodeManager(Node):
         transition = Transition()
         transition.id = Transition.TRANSITION_ACTIVATE
         transition.label = "activate"
-        self.change_state(transition, self.front_sensors_change_state_client)
         self.change_state(transition, self.wheels_controller_change_state_client)
         self.change_state(transition, self.controller_change_state_client)
         self.poll_wait_state("active")
