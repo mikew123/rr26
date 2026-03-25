@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 #MRW 3/28/2025 changed copy of node file to make it lifecycle
+#MRW 3/25/2025 changed back to non-lifecycle
 
 import rclpy
-import sys
 import serial
 import math
-import time
 import numpy as np
 
 from rclpy.node import Node
@@ -15,27 +14,18 @@ from nav_msgs.msg import Odometry
 
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import TransformStamped
-from geometry_msgs.msg import Point, Quaternion, Vector3
+from geometry_msgs.msg import Vector3
 
 from tf2_ros.transform_broadcaster import TransformBroadcaster
 
-from robo24_interfaces.srv import Claw
 import json
 
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.callback_groups import ReentrantCallbackGroup
-from rclpy.lifecycle import LifecycleNode
-from rclpy.lifecycle.node import LifecycleState, TransitionCallbackReturn
-from lifecycle_msgs.srv import GetState
-
-from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 
 import asyncio
 
-class Roborama25WheelControllerNodeLC(LifecycleNode):
-
-    lifecycle_state_active = False
+class Roborama25WheelControllerNode(Node):
     
     # Enable TF odom->base_footprint
     #tf_enable = False # false when ekf is used
@@ -85,69 +75,23 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
     def __init__(self):
         super().__init__('rr26_wheel_controller_node_lc')
 
-        # no lifecycle support - it simply is not broadcast when callbacks are blocked when not in active state
-        self.tf_broadcaster = TransformBroadcaster(self)
-
-        self.get_logger().info(f"class Roborama25WheelControllerNodeLC Started: Odometry rate = {self.odometryRateHz} Hz")
-            
-
-    # Create ROS2 communications, connect to HW
-    def on_configure(self, previous_state: LifecycleState):
-        self.get_logger().info(f"IN on_configure")
-        
         self.cb_group = MutuallyExclusiveCallbackGroup()
 
-        self.wheel_serial_port = serial.Serial(None, 2000000) # USB serial
-
-        self.serial_timer = self.create_timer((1.0/self.serialTimerRateHz), self.serial_timer_callback
-                                              , callback_group=self.cb_group)
-        self.serial_timer.cancel()
-        
-        # There is no lifecycle support for subscription
         self.cmd_vel_subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
         self.encoders_msg_subscription = self.create_subscription(String, 'encoders_msg', self.encoders_msg_callback, 10)
         self.joy_subscription = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
         self.robot_json_subscription = self.create_subscription(String, 'robot_json', self.robot_json_callback, 10)
         
-        self.encoders_msg_publisher = self.create_lifecycle_publisher(String, 'encoders_msg', 10)
-        self.odometry_publisher = self.create_lifecycle_publisher(Odometry, 'wheel_odom', 10)
-        self.wheel_debug_msg_publisher = self.create_lifecycle_publisher(String, 'wheel_debug_msg', 10)
+        self.encoders_msg_publisher = self.create_publisher(String, 'encoders_msg', 10)
+        self.odometry_publisher = self.create_publisher(Odometry, 'wheel_odom', 10)
+        self.wheel_debug_msg_publisher = self.create_publisher(String, 'wheel_debug_msg', 10)
+        self.tf_broadcaster = TransformBroadcaster(self)
 
-        return TransitionCallbackReturn.SUCCESS
+        self.wheel_serial_port = serial.Serial(self.wheel_serial_port_name, 2000000) # USB serial
+        self.serial_timer = self.create_timer((1.0/self.serialTimerRateHz), self.serial_timer_callback
+                                              , callback_group=self.cb_group)    
 
-    ############# Start Lifecycle stuff #############
-    # Clean up stuff for cleanup, shutdown, error
-    def cleanup_lc(self) :        
-        self.destroy_lifecycle_publisher(self.encoders_msg_publisher)
-        self.destroy_lifecycle_publisher(self.odometry_publisher)
-        self.destroy_lifecycle_publisher(self.wheel_debug_msg_publisher)
-
-                 
-    def cleanup(self) :                
-        self.destroy_timer(self.serial_timer)
-        self.wheel_serial_port=None
-        # There is no lifecycle subscription
-        self.destroy_subscription(self.cmd_vel_subscription)   
-        self.destroy_subscription(self.encoders_msg_subscription)   
-        self.destroy_subscription(self.joy_subscription)   
-        self.destroy_subscription(self.robot_json_subscription)   
-
-    # Destroy ROS2 communications, disconnect from HW
-    def on_cleanup(self, previous_state: LifecycleState):
-        self.get_logger().info("IN on_cleanup")
-        self.cleanup_lc()
-        self.cleanup()
-        return TransitionCallbackReturn.SUCCESS
-
-    # Activate/Enable HW
-    def on_activate(self, previous_state: LifecycleState):
-        
-        self.get_logger().info("IN on_activate")
-        self.serial_timer.reset()
-        
         # configure serial interface
-        self.wheel_serial_port.port = self.wheel_serial_port_name
-        self.wheel_serial_port.open()
         self.wheel_serial_port.reset_input_buffer() # empty buffer
         self.wheel_serial_port.write("CP 0 1000\n".encode()) # Extra write to wait a tiny bit
         self.wheel_serial_port.write(f"OR {self.odometryRateHz}\n".encode())
@@ -156,42 +100,51 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
         self.wheel_serial_port.write(f"WD {self.wheelDiameter}\n".encode())
         self.wheel_serial_port.write("CP 0 1000\n".encode())
         self.wheel_serial_port.flush()
-        
-        self.lifecycle_state_active = True
-        return super().on_activate(previous_state)
 
-        
-    # Deactivate stuff used in shutdown, error
-    def deactivate(self):
-        self.lifecycle_state_active = False
-        self.serial_timer.cancel()
+        self.get_logger().info(f"class Roborama25WheelControllerNode Started: Odometry rate = {self.odometryRateHz} Hz")
+            
+
+    def cleanup(self) :
+        self.encoders_msg_publisher.destroy()
+        self.odometry_publisher.destroy()
+        self.wheel_debug_msg_publisher.destroy()
+        self.destroy_timer(self.serial_timer)
         self.wheel_serial_port.close()
-        
-    # Deactivate/Disable HW
-    def on_deactivate(self, previous_state: LifecycleState):
-        self.get_logger().info("IN on_deactivate")
-        self.deactivate()
-        return super().on_deactivate(previous_state)
-    
-    # Cleanup everything
-    def shutdown(self, previous_state: LifecycleState):
-        if(previous_state.label != "unconfigured") :
-            self.deactivate()        
-            self.cleanup()
-        
-    def on_shutdown(self, previous_state: LifecycleState):
-        self.get_logger().info(f"IN on_shutdown from {previous_state=}")
-        self.shutdown(previous_state)
-        return TransitionCallbackReturn.SUCCESS
-    
-    # Process errors, deactivate + cleanup
-    def on_error(self, previous_state: LifecycleState):
-        self.get_logger().info(f"IN on_error from {previous_state=}")
-        self.shutdown(previous_state)
-        # do some checks, if ok, then return SUCCESS, if not FAILURE
-        return TransitionCallbackReturn.FAILURE
 
-    ############ End Lifecycle stuff ###########
+
+    # check serial port at timerRateHz and parse out messages to publish
+    # TODO: actually parse the messages (currently only OD encoder messages)
+    def serial_timer_callback(self):
+        if not self.wheel_serial_port.is_open : return
+        return
+    
+        # Check if a line has been received on the serial port
+        try :
+            while self.wheel_serial_port.in_waiting > 0:
+                
+                received_data = self.wheel_serial_port.readline().decode().strip()
+                #self.get_logger().info(f"Received: {received_data}")
+                
+                # Publish the received serial line as a String message
+                # emsg = String()
+                # emsg.data = received_data
+                # assume it is an OD encoder message
+                # self.encoders_msg_publisher.publish(emsg)
+
+        except Exception as ex:
+            self.get_logger().warning(f"wheel controller timer serial read exception {ex}")
+            self.wheel_serial_port.close()
+            self.wheel_serial_port.open()
+            return
+
+        # Check to see if a serial message needs to be transmitted
+        try:
+            if self.CPmsg!="" :
+                self.get_logger().info(f"Claw serial write in timer \"{self.CPmsg}\"\n".encode())
+                self.wheel_serial_port.write(self.CPmsg)
+                self.CPmsg=""
+        except Exception as ex:
+            self.get_logger().error(f"wheel controller timer serial write exception {ex}")
     
     # Get button commands from Joy message
     def joy_callback(self, msg:Joy):
@@ -421,41 +374,6 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
         except Exception as ex:
             self.get_logger().warning(f"wheel controller robot_json_callback exception {ex=} {msg=}")        
 
-    # check serial port at timerRateHz and parse out messages to publish
-    # TODO: actually parse the messages (currently only OD encoder messages)
-    def serial_timer_callback(self):
-        if not self.lifecycle_state_active : return
-        return
-    
-        # Check if a line has been received on the serial port
-        try :
-            while self.wheel_serial_port.in_waiting > 0:
-                
-                received_data = self.wheel_serial_port.readline().decode().strip()
-                #self.get_logger().info(f"Received: {received_data}")
-                
-                # Publish the received serial line as a String message
-                # emsg = String()
-                # emsg.data = received_data
-                # assume it is an OD encoder message
-                # self.encoders_msg_publisher.publish(emsg)
-
-        except Exception as ex:
-            self.get_logger().warning(f"wheel controller timer serial read exception {ex}")
-            self.wheel_serial_port.close()
-            self.wheel_serial_port.open()
-            return
-
-        # Check to see if a serial message needs to be transmitted
-        try:
-            if self.CPmsg!="" :
-                self.get_logger().info(f"Claw serial write in timer \"{self.CPmsg}\"\n".encode())
-                self.wheel_serial_port.write(self.CPmsg)
-                self.CPmsg=""
-
-        except Exception as ex:
-            self.get_logger().error(f"wheel controller timer serial write exception {ex}")
-
     def broadcast_tf(self, x, y, theta ):
         # Create and broadcast the transform message 
         tfs = TransformStamped()
@@ -501,32 +419,16 @@ class Roborama25WheelControllerNodeLC(LifecycleNode):
 
         return q
 
-# def main(args=None):
-#     rclpy.init(args=args)
-
-#     node = Roborama25WheelControllerNodeLC()
-#     #rclpy.spin(node)
-#     # MultiThread for life cycle operation
-#     rclpy.spin(node, MultiThreadedExecutor()) 
-    
-#     node.destroy_node()
-#     rclpy.shutdown()
-
-# def main() :
-#     with rclpy.init() as ctx:
-#         node = Roborama25WheelControllerNodeLC()
-#         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
-#         # No need to call shutdown
-
 def main(args=None):
     rclpy.init(args=args)
     node = None
     
     try:
-        node = Roborama25WheelControllerNodeLC()
+        node = Roborama25WheelControllerNode()
         rclpy.spin(node, MultiThreadedExecutor())
     except KeyboardInterrupt:
-        pass  # Handle Ctrl+C gracefully
+        # Handle Ctrl+C gracefully
+        node.cleanup()
     finally:
         if node is not None:
             node.destroy_node()
@@ -536,4 +438,3 @@ def main(args=None):
 # This code is needed to run .py file directly
 if __name__ == '__main__':
     main()
-

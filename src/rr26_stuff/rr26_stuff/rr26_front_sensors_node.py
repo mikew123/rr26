@@ -41,9 +41,6 @@ class Roborama25FrontSensorsNode(Node):
 
         self.cb_group = MutuallyExclusiveCallbackGroup()
 
-        self.sensor_serial_port = serial.Serial(self.serial_port, 2000000) # USB serial
-        self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.serial_timer_callback
-                                                , callback_group=self.cb_group)
 
         self.cmd_vel_subscription = self.create_subscription(Twist, '/cmd_vel', self.cmd_vel_callback, 10)
         self.tofL5L_pcd_publisher = self.create_publisher(PointCloud2, 'tofL5L_pcd', 10)
@@ -55,6 +52,18 @@ class Roborama25FrontSensorsNode(Node):
         #DEBUG publishers
         self.tofL5_msg_publisher = self.create_publisher(String, 'tofL5_msg', 10)
         self.CAL_msg_publisher = self.create_publisher(String, 'IMUCAL_msg', 10)
+
+        self.sensor_serial_port = serial.Serial(self.serial_port, 2000000) # USB serial
+        self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.serial_timer_callback
+                                                , callback_group=self.cb_group)
+
+        self.sensor_serial_port.reset_input_buffer() # empty buffer
+        # configure interface
+        self.sensor_serial_port.write(f"MODE ROS2\n".encode()) 
+        self.sensor_serial_port.write(f"MODE ROS2\n".encode()) # extra write for startup
+        self.sensor_serial_port.write(f"REFL {self.reflVal}\n".encode())
+        self.sensor_serial_port.write(f"SIGM {self.sigmVal}\n".encode())
+        self.sensor_serial_port.flush()
 
         self.get_logger().info(f"Roborama25FrontSensorsNode: Started")
 

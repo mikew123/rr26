@@ -27,7 +27,7 @@ setup(
             'rr26_can_xy_node = rr26_stuff.rr26_can_xy_node:main',
             'rr26_front_sensors_node = rr26_stuff.rr26_front_sensors_node:main',
             'rr26_openmv_serial_node = rr26_stuff.rr26_openmv_serial_node:main',
-            "rr26_wheel_controller_node_lc = rr26_stuff.rr26_wheel_controller_node_lc:main",
+            "rr26_wheel_controller_node = rr26_stuff.rr26_wheel_controller_node:main",
             "rr26_teleop_node = rr26_stuff.rr26_teleop_node:main",
             "rr26_controller_node_lc = rr26_stuff.rr26_controller_node_lc:main",
             'rr26_lifecycle_node_manager = rr26_stuff.rr26_lifecycle_node_manager:main',
