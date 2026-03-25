@@ -20,47 +20,33 @@ class Roborama25LifecycleNodeManager(Node):
         self.declare_parameter("front_sensors_node_name", "sensors")
         self.declare_parameter("wheel_controller_node_name", "wheels")
         self.declare_parameter("controller_node_name", "controller")
-        # self.declare_parameter("openmv_node_name", "openmv")
-        self.declare_parameter("can_xy_node_name", "can_xy")
 
         front_sensors_node_name = self.get_parameter("front_sensors_node_name").value
         wheels_controller_node_name = self.get_parameter("wheel_controller_node_name").value
         controller_node_name = self.get_parameter("controller_node_name").value
-        # openmv_node_name = self.get_parameter("openmv_node_name").value
-        can_xy_node_name = self.get_parameter("can_xy_node_name").value
         
         front_sensors_service_change_state_name = "/" + front_sensors_node_name + "/change_state"
         wheels_controller_service_change_state_name = "/" + wheels_controller_node_name + "/change_state"
         controller_service_change_state_name = "/" + controller_node_name + "/change_state"
-        # openmv_service_change_state_name = "/" + openmv_node_name + "/change_state"
-        can_xy_service_change_state_name = "/" + can_xy_node_name + "/change_state"
 
         self.front_sensors_change_state_client = self.create_client(ChangeState, front_sensors_service_change_state_name)
         self.wheels_controller_change_state_client = self.create_client(ChangeState, wheels_controller_service_change_state_name)
         self.controller_change_state_client = self.create_client(ChangeState, controller_service_change_state_name)
-        # self.openmv_change_state_client = self.create_client(ChangeState, openmv_service_change_state_name)
-        self.can_xy_change_state_client = self.create_client(ChangeState, can_xy_service_change_state_name)
         
         front_sensors_service_get_state_name = "/" + front_sensors_node_name + "/get_state"
         wheels_controller_service_get_state_name = "/" + wheels_controller_node_name + "/get_state"
         controller_service_get_state_name = "/" + controller_node_name + "/get_state"
-        # openmv_service_get_state_name = "/" + openmv_node_name + "/get_state"
-        can_xy_service_get_state_name = "/" + can_xy_node_name + "/get_state"
 
         self.front_sensors_get_state_client = self.create_client(GetState, front_sensors_service_get_state_name)
         self.wheels_controller_get_state_client = self.create_client(GetState, wheels_controller_service_get_state_name)
         self.controller_get_state_client = self.create_client(GetState, controller_service_get_state_name)
-        # self.openmv_get_state_client = self.create_client(GetState, openmv_service_get_state_name)
-        self.can_xy_get_state_client = self.create_client(GetState, can_xy_service_get_state_name)
         
         self.get_logger().info(f"""
         lifecycle_node_manager: Initialized 
         {front_sensors_service_change_state_name=} 
         {wheels_controller_service_change_state_name=} 
         {controller_service_change_state_name=}
-        {can_xy_service_change_state_name=}
         """)
-        # {openmv_service_change_state_name=}
 
     def get_state(self, client: Client):
         client.wait_for_service()
@@ -82,18 +68,12 @@ class Roborama25LifecycleNodeManager(Node):
         front_sensors_state=""
         wheels_controller_state=""
         controller_state=""
-        # openmv_state=""
-        can_xy_state=""
-        # while not((front_sensors_state == state) and (wheels_controller_state == state) and (controller_state == state) and (openmv_state == state) and (can_xy_state == state)) :
-        while not((front_sensors_state == state) and (wheels_controller_state == state) and (controller_state == state) and (can_xy_state == state)) :
+        while not((front_sensors_state == state) and (wheels_controller_state == state) and (controller_state == state)) :
             time.sleep(0.1)
-            # self.get_logger().info(f"{front_sensors_state=} {wheels_controller_state=} {controller_state=} {openmv_state=} {can_xy_state=}")
-            self.get_logger().info(f"{front_sensors_state=} {wheels_controller_state=} {controller_state=} {can_xy_state=}")
+            self.get_logger().info(f"{front_sensors_state=} {wheels_controller_state=} {controller_state=}")
             front_sensors_state = self.get_state(self.front_sensors_get_state_client)
             wheels_controller_state = self.get_state(self.wheels_controller_get_state_client)
             controller_state = self.get_state(self.controller_get_state_client)
-            # openmv_state = self.get_state(self.openmv_get_state_client)
-            can_xy_state = self.get_state(self.can_xy_get_state_client)
 
         self.get_logger().info(f"Configuring OK, now {state}")
         
@@ -106,8 +86,6 @@ class Roborama25LifecycleNodeManager(Node):
         self.change_state(transition, self.front_sensors_change_state_client)
         self.change_state(transition, self.wheels_controller_change_state_client)
         self.change_state(transition, self.controller_change_state_client)
-        # self.change_state(transition, self.openmv_change_state_client)
-        self.change_state(transition, self.can_xy_change_state_client)
         self.poll_wait_state("inactive")
 
         # Inactive to Active
@@ -118,8 +96,6 @@ class Roborama25LifecycleNodeManager(Node):
         self.change_state(transition, self.front_sensors_change_state_client)
         self.change_state(transition, self.wheels_controller_change_state_client)
         self.change_state(transition, self.controller_change_state_client)
-        # self.change_state(transition, self.openmv_change_state_client)
-        self.change_state(transition, self.can_xy_change_state_client)
         self.poll_wait_state("active")
 
         self.get_logger().info(f"initialization_sequence finished")
