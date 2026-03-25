@@ -86,14 +86,23 @@ class Roborama25TeleopNode(Node):
             cmd_vel.angular.z = angular
             self.cmd_vel_publisher.publish(cmd_vel)
 
+    def cleanup(self) :
+        self.cmd_vel_publisher.destroy()
+
 def main(args=None):
     rclpy.init(args=args)
-
-    node = Roborama25TeleopNode()
-    rclpy.spin(node)
+    node = None
     
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        node = Roborama25TeleopNode()
+        rclpy.spin(node)  # Will exit on Ctrl+C
+    except KeyboardInterrupt:
+        # Handle Ctrl+C gracefully
+        node.cleanup()
+    finally:
+        if node is not None:
+            node.destroy_node()
+        # rclpy.shutdown() # shutdown is called in "context" no need to call again
 
 # This code is needed to run .py file directly
 if __name__ == '__main__':

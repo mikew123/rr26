@@ -32,9 +32,15 @@ class OpenmvSerialNode(Node):
         
         self.get_logger().info(f"OpenmvSerialNode: Started")
 
-
+    def cleanup(self) :
+        self.serial_timer.destroy()
+        self.openmv_serial_port.close()
+        self.openmv_msg_publisher.destroy()
+        
     # check serial port at timerRateHz and parse out messages to publish
     def timer_callback(self):
+        if not self.openmv_serial_port.is_open : return
+
         # Check if a line has been received on the serial port
         if self.openmv_serial_port.in_waiting > 0:
             received_data = self.openmv_serial_port.readline().decode().strip()
@@ -55,11 +61,12 @@ def main(args=None):
         node = OpenmvSerialNode()
         rclpy.spin(node, MultiThreadedExecutor())  # Will exit on Ctrl+C
     except KeyboardInterrupt:
-        pass  # Handle Ctrl+C gracefully
+        # Handle Ctrl+C gracefully
+        node.cleanup()
     finally:
         if node is not None:
             node.destroy_node()
-        rclpy.shutdown()
+        # rclpy.shutdown() # shutdown is called in "context" no need to call again
 
 
 # This code is needed to run .py file directly
