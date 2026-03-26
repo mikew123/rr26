@@ -219,7 +219,6 @@ class Roborama25ControllerNode(Node):
         self.cb_group_mx = MutuallyExclusiveCallbackGroup()
         self.cb_group_nav2_run = MutuallyExclusiveCallbackGroup()
 
-        # Life cycle needed
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
@@ -1870,7 +1869,8 @@ def main(args=None):
         rclpy.spin(node, MultiThreadedExecutor())
     except KeyboardInterrupt:
         # Handle Ctrl+C gracefully
-        node.cleanup()
+        if node is not None:
+            node.cleanup()
     finally:
         if node is not None:
             node.destroy_node()

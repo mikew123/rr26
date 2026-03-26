@@ -83,26 +83,26 @@ class Roborama25FrontSensorsNode(Node):
     # check serial port at timerRateHz and parse out messages to publish
     def serial_timer_callback(self):
         if not self.sensor_serial_port.is_open : return
-        return
+        # return
     
         # Check if a line has been received on the serial port
         try :
             while self.sensor_serial_port.in_waiting > 0:
 
                 received_data = self.sensor_serial_port.readline().decode().strip()
-                #self.get_logger().info(f"Received: {received_data}")
+                # self.get_logger().info(f"Received: {received_data}")
                 
-                # strArray = received_data.split(" ")
-                # if strArray[0]=="L5" :
-                #     self.L5_processing(strArray)
-                # elif strArray[0]=="IMU" :
-                #     self.IMU_processing(strArray)
-                # elif strArray[0]=="CAL" :
-                #     self.CAL_processing(strArray)
-                # elif strArray[0]=="BT":
-                #     self.BT_processing(strArray)
-                # else :
-                #     self.get_logger().error(f"Invalid serial sensor message {received_data=}")
+                strArray = received_data.split(" ")
+                if strArray[0]=="L5" :
+                    self.L5_processing(strArray)
+                elif strArray[0]=="IMU" :
+                    self.IMU_processing(strArray)
+                elif strArray[0]=="CAL" :
+                    self.CAL_processing(strArray)
+                elif strArray[0]=="BT":
+                    self.BT_processing(strArray)
+                else :
+                    self.get_logger().error(f"Invalid serial sensor message {received_data=}")
 
         except Exception as ex:
             self.get_logger().warning(f"front sensors timer serial read exception {ex}")
