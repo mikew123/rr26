@@ -130,8 +130,8 @@ def generate_launch_description():
 
         launch_ros.actions.LifecycleNode(
             package='rr26_stuff',
-            executable='rr26_controller_node_lc',
-            name='controller_node_lc',
+            executable='rr26_controller_node',
+            name='controller_node',
             namespace="",
         ),
         
@@ -149,13 +149,13 @@ def generate_launch_description():
             namespace="",
         ),
         
-        launch_ros.actions.Node(
-            package="rr26_stuff",
-            executable="rr26_lifecycle_node_manager",
-            parameters=[
-                {"controller_node_name": "controller_node_lc"},
-            ]
-        ),
+        # launch_ros.actions.Node(
+        #     package="rr26_stuff",
+        #     executable="rr26_lifecycle_node_manager",
+        #     parameters=[
+        #         {"controller_node_name": "controller_node_lc"},
+        #     ]
+        # ),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([

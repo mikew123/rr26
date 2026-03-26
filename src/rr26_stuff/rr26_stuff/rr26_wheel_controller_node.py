@@ -73,7 +73,7 @@ class Roborama25WheelControllerNode(Node):
     wheel_serial_port_name = "/dev/serial/by-id/usb-Waveshare_RP2040_Zero_E6617C93E33D6927-if00"
 
     def __init__(self):
-        super().__init__('rr26_wheel_controller_node_lc')
+        super().__init__('rr26_wheel_controller_node')
 
         self.cb_group = MutuallyExclusiveCallbackGroup()
 

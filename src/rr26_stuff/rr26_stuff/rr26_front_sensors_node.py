@@ -37,7 +37,7 @@ class Roborama25FrontSensorsNode(Node):
     movingBackward:bool = True # True if moving backwards, used for rear sensor scan messages
     
     def __init__(self):
-        super().__init__('rr26_front_sensors_node_lc')        
+        super().__init__('rr26_front_sensors_node')        
 
         self.cb_group = MutuallyExclusiveCallbackGroup()
 
