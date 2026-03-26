@@ -121,7 +121,7 @@ def generate_launch_description():
             namespace="",
         ),
 
-        launch_ros.actions.LifecycleNode(
+        launch_ros.actions.Node(
             package='rr26_stuff',
             executable='rr26_wheel_controller_node',
             name='wheel_controller_node',
