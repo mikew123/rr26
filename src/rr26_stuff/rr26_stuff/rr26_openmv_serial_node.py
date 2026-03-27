@@ -17,8 +17,6 @@ class OpenmvSerialNode(Node):
     #serial_port = "/dev/ttyACM0"
     serial_port = "/dev/serial/by-id/usb-MicroPython_OpenMV_IMXRT1060_9D7B4061D7210432-if00"
 
-    # lifecycle_state_active = False
-
     def __init__(self):
         super().__init__('openmv_serial_node')
 

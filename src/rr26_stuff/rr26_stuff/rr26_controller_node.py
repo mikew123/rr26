@@ -347,8 +347,8 @@ class Roborama25ControllerNode(Node):
     
     def barrels_callback(self, msg:Barrels) -> None:
         """
-        Barrel racing is run on the /barrels topic callback which is published
-        every /scan Lidar topic.
+        Barrel racing is run in the /barrels topic callback which is published
+        every /scan Lidar topic (~10Hz).
         The /barrels topic has a list of detected barrels distance and angle 
         from the robot center (Lidar)
 

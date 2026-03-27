@@ -32,8 +32,6 @@ class Roborama25FrontSensorsNode(Node):
     #serial_port = "/dev/ttyACM2"
     serial_port:str = "/dev/serial/by-id/usb-Waveshare_RP2040_Zero_E6625C05E790A423-if00"
 
-    lifecycle_state_active = False
-
     movingBackward:bool = True # True if moving backwards, used for rear sensor scan messages
     
     def __init__(self):
@@ -114,7 +112,6 @@ class Roborama25FrontSensorsNode(Node):
         """
         Get status of fwd/rev motion
         """
-        if not self.lifecycle_state_active : return
         linear_velocity = msg.linear.x
         self.movingBackward = linear_velocity<-0.0001
 

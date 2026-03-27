@@ -148,7 +148,6 @@ class Roborama25WheelControllerNode(Node):
     
     # Get button commands from Joy message
     def joy_callback(self, msg:Joy):
-        if not self.lifecycle_state_active : return
         
         resetAxes:int = msg.buttons[6] # 1 when pushed
         openClaw:int = msg.buttons[4] # 1 when pushed
@@ -166,7 +165,6 @@ class Roborama25WheelControllerNode(Node):
 
     # Convert /cmd_vel messages to physical 2 wheel diff drive velocities in meters per second
     def cmd_vel_callback(self, msg):
-        if not self.lifecycle_state_active : return
                 
         linear_velocity = msg.linear.x
         angular_velocity = msg.angular.z
@@ -190,7 +188,6 @@ class Roborama25WheelControllerNode(Node):
     # Message string format OD timeUs wheelR wheelL odomF odomB
     # all data integer unsigned 32 bit
     def encoders_msg_callback(self, msg):
-        if not self.lifecycle_state_active : return
 
         # Parse OD message from wheel encoders
         od = np.empty(5, dtype=int)
@@ -331,7 +328,6 @@ class Roborama25WheelControllerNode(Node):
     CPmsg = ""
 
     def robot_json_callback(self, msg) :
-        if not self.lifecycle_state_active : return
 
         # self.get_logger().info(f"robot_json_callback: {msg}")
 
