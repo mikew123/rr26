@@ -37,3 +37,6 @@ alias rr26="clear; colcon build;\
 alias kill_ros="source ~/rr26_ws/kill_ros.sh"
 
 alias fox_bridge="ros2 launch foxglove_bridge foxglove_bridge_launch.xml"
+
+alias rr26_record='ros2 bag record --storage mcap -o  \
+    /home/mike/sambashare/rosbags/rr26_$(date +"%y_%m_%d_%H_%M").bag --all'

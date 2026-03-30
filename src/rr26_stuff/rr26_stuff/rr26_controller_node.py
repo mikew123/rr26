@@ -340,7 +340,7 @@ class Roborama25ControllerNode(Node):
     brTimer = 0.0
     curr_brState:str = ""
     next_brState:str = "init"
-    brLinX = 0.5
+    brLinX = 0.1 #0.5
 
     def deg2rad(self, deg:float) -> float :
         return ((deg/180.0) * math.pi)
