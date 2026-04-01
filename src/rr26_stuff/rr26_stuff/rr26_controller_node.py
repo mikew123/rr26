@@ -315,7 +315,41 @@ class Roborama25ControllerNode(Node):
         self.gotoQtWaypoints_last = self.gotoQtWaypoints
         self.gotoCan_last = self.gotoCan
 
-    # Barrell racing global variables
+    def getAngleDist2CanBlob(self) -> tuple :
+        # return (tf_OK, angle, distance) to can blob
+        cnt = 0
+        d = 0
+        a = 0
+        current_pose: PoseStamped = None
+        while cnt <= 20 :
+            cnt+=1
+            (tf_OK, can_pose) = self.getCanPose()
+            if tf_OK==True :
+                x = can_pose.pose.position.x
+                y = can_pose.pose.position.y
+                self.get_logger().info(f"gotoCanTF:b can TF {x=:.3f} {y=:.3f}")
+                # get current pose to determine the angle offset
+                # rotating to point to the desired is faster
+                # maybe the navigation behavior can be "fixed" 
+                (tf_OK, current_pose) = self.getCurrentPose()
+                if tf_OK :
+                    xd = float(x) - current_pose.pose.position.x
+                    yd = float(y) - current_pose.pose.position.y
+                    q = current_pose.pose.orientation
+                    (_,_,ad) = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+                    # Calc relative angle from robot to can
+                    a = math.atan2(yd,xd) - ad
+                    d = math.sqrt(xd*xd + yd*yd)
+                    
+            if tf_OK==False:
+                self.get_logger().warn(f"gotoCanTF: Failed to get can pose")
+                return (False, 0, 0)
+            
+
+
+            return (tf_OK, a, d)
+        
+    # Barrel racing global variables
     enable_br_states = False
     def runBarrelRace(self) :
         """
@@ -341,9 +375,15 @@ class Roborama25ControllerNode(Node):
     curr_brState:str = ""
     next_brState:str = "init"
     brLinX = 0.1 #0.5
+    brCnt = 0
 
     def deg2rad(self, deg:float) -> float :
         return ((deg/180.0) * math.pi)
+    
+    def lidarDist2can(self) -> float :
+        # get distance and angle to the can using the lidar can detection
+        # relative to the robot center
+        return 0.0
     
     def barrels_callback(self, msg:Barrels) -> None:
         """
@@ -393,28 +433,53 @@ class Roborama25ControllerNode(Node):
                 next_state = "start"
             
             elif state=="start" :
-                # Drive 2ft to start line
+                # Drive 3ft to 1ft past start line
                 linX = self.brLinX
                 angZ = 0.0
-                dist = 2.0*self.feetToMeter # 2 feet to start line
+                dist = 3.0*self.feetToMeter
                 maxTime = dist/linX
 
                 if elapsed_time>=maxTime:
-                    next_state = "gotoCan1"
+                    next_state = "gotoB1A"
 
-            elif state=="gotoCan1" :
-                # Drive in 2.5ft arc towards Can 1, stop at 80 degrees
+            elif state=="gotoB1A" :
+                # Drive in 1.5ft arc towards Can 1, stop at 80 degrees
+                # the camera should be able to see the can in the ranges of placement
                 linX = self.brLinX
-                # angZ = 0.35 * 2
                 targetAngle = self.deg2rad(80.0)
-                angZ = linX * targetAngle
-                maxTime = 45.0 #3.0
+                angZ = (linX * targetAngle)/(1.5*self.ft2m)
+                maxTime = 20.0
 
                 if currentAngle>=targetAngle or elapsed_time>=maxTime:
-                    next_state = "end"
+                    next_state = "gotoB1B"
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {targetAngle=} {maxTime=} {linX=} {angZ=}")
                 
+            elif state=="gotoB1B" :
+                # Drive to get close to barrel1 using camera blob detection
+
+                if stateChange : 
+                    self.brCnt = 0
+                self.brCnt +=1
+
+                (tf_OK, a, d) = self.getAngleDist2CanBlob()
+
+                if tf_OK == False :
+                    self.get_logger().info(f"barrels_callback: barrel not detected with cam blob {state=} {elapsed_time=}")
+                    next_state = "end"
+                    
+                if d > 0.6 :
+                    # Head toward barrel
+                    linX = self.brLinX
+                    angZ = a
+                else :
+                    self.get_logger().info(f"barrels_callback: barrel not detected with cam blob {state=} {elapsed_time=} {a=} {d=}")
+                    next_state = "end"
+
+
+
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {tf_OK=} {a=} {d=} {linX=} {angZ=}")
+
             elif state=="end" :
                 self.enable_br_states = False
                 next_state = "init"
