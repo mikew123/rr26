@@ -380,10 +380,30 @@ class Roborama25ControllerNode(Node):
     def deg2rad(self, deg:float) -> float :
         return ((deg/180.0) * math.pi)
     
-    def lidarDist2can(self) -> float :
-        # get distance and angle to the can using the lidar can detection
-        # relative to the robot center
-        return 0.0
+    def lidarDist2can(self, barrels:Barrels, dmax, amin, amax) -> Barrel :
+        """
+        get distance and angle to the can using the lidar can detection
+        relative to the robot center
+        Select the barrel that meets the distance and angle requirements
+        return angle, dist to barrel relative to center of robot
+        """
+        # barrelDetected:Barrel = None
+        # barrels:list[Barrel] = Barrels.barrel
+        # for barrel in barrels :
+        #     a = barrel.angle
+        #     d = barrel.distance
+        #     if (d<=dmax) :
+        #         barrelDetected = barrel
+ 
+        barrelDetected:Barrel =  None
+        
+
+        if  len(barrels.barrel) >0 :
+            barrelDetected = barrels.barrel[0]
+        
+        # self.get_logger().info(f"lidarDist2can: {barrels=} {barrelDetected=}")
+
+        return barrelDetected
     
     def barrels_callback(self, msg:Barrels) -> None:
         """
@@ -393,6 +413,8 @@ class Roborama25ControllerNode(Node):
         from the robot center (Lidar)
 
         """
+
+        barrels = msg
 
         # default no movement
         linX:float = 0.0
@@ -410,6 +432,8 @@ class Roborama25ControllerNode(Node):
             if self.curr_brState!=self.next_brState :
                 stateChange = True
                 self.brStartTime = current_time
+                self.brCounter = 0
+
                 self.get_logger().info(f"barrels_callback: state change {self.curr_brState} -> {self.next_brState}")
 
             elapsed_time = (current_time - self.brStartTime).nanoseconds / 1e9
@@ -458,10 +482,6 @@ class Roborama25ControllerNode(Node):
             elif state=="gotoB1B" :
                 # Drive to get close to barrel1 using camera blob detection
 
-                if stateChange : 
-                    self.brCnt = 0
-                self.brCnt +=1
-
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
 
                 if tf_OK == False :
@@ -471,14 +491,36 @@ class Roborama25ControllerNode(Node):
                 if d > 0.6 :
                     # Head toward barrel
                     linX = self.brLinX
-                    angZ = a
+                    angZ = a*(1) #TODO scale with linX
                 else :
-                    self.get_logger().info(f"barrels_callback: barrel not detected with cam blob {state=} {elapsed_time=} {a=} {d=}")
-                    next_state = "end"
-
-
+                    self.get_logger().info(f"barrels_callback: barrel is close {state=} {elapsed_time=} {a=} {d=}")
+                    next_state = "aroundB1"
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {tf_OK=} {a=} {d=} {linX=} {angZ=}")
+
+            elif state=="aroundB1" :
+                # Drive around barrel 1 using lidar to keep close to the barrel on robot left side
+                dmax = 1.5 # meters
+                amin = -20.0
+                amax = 20.0
+
+                barrel = self.lidarDist2can(barrels, dmax, amin, amax)
+
+
+                if elapsed_time >= 30.0 :
+                    next_state = "end"
+
+                elif barrel != None:
+                    a = barrel.angle
+                    d = barrel.distance
+
+                    linX = self.brLinX
+                    angZ = 0.0
+                    angZ += (d - 0.2)
+                    angZ += (a - (self.deg2rad(90.0)))
+
+
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {barrel=} {linX=} {angZ=}")
 
             elif state=="end" :
                 self.enable_br_states = False
