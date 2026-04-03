@@ -452,52 +452,70 @@ class Roborama25ControllerNode(Node):
             currentX = current_pose.pose.position.x
             currentY = current_pose.pose.position.x
 
+        # STATE init
             if state=="init" :
                 # Initialize 
                 next_state = "start"
             
+        # STATE start
             elif state=="start" :
                 # Drive 3ft to 1ft past start line
                 linX = self.brLinX
                 angZ = 0.0
                 dist = 3.0*self.feetToMeter
-                maxTime = dist/linX
+                timeout = dist/linX
 
-                if elapsed_time>=maxTime:
+                if elapsed_time>=timeout:
                     next_state = "gotoB1A"
 
+        # STATE gotoB1A
             elif state=="gotoB1A" :
                 # Drive in 1.5ft arc towards Can 1, stop at 80 degrees
                 # the camera should be able to see the can in the ranges of placement
-                linX = self.brLinX
-                targetAngle = self.deg2rad(80.0)
-                angZ = (linX * targetAngle)/(1.5*self.ft2m)
-                maxTime = 20.0
+                targetAngle = self.deg2rad(75.0)
+                timeout = 20.0
 
-                if currentAngle>=targetAngle or elapsed_time>=maxTime:
+                if elapsed_time>=timeout :
+                    self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
+                    next_state = "end"
+                elif currentAngle>=targetAngle :
+                    self.get_logger().info(f"barrels_callback: pointed toward barrel 1 {state=} {elapsed_time=} {currentAngle=}")
                     next_state = "gotoB1B"
+                else :
+                    linX = self.brLinX
+                    angZ = (linX * targetAngle)/(1.5*self.ft2m)
 
-                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {targetAngle=} {maxTime=} {linX=} {angZ=}")
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {targetAngle=} {timeout=} {linX=} {angZ=}")
                 
+        # STATE gotoB1B
             elif state=="gotoB1B" :
                 # Drive to get close to barrel1 using camera blob detection
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
 
-                if tf_OK == False :
-                    self.get_logger().info(f"barrels_callback: barrel not detected with cam blob {state=} {elapsed_time=}")
+                timeout = 10.0
+                if elapsed_time>=timeout :
+                    self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
+
+                elif tf_OK == False :
+                    self.get_logger().info(f"barrels_callback: barrel 1 not detected with cam blob, ignore {state=} {elapsed_time=}")
                     
-                if d > 0.6 :
+                elif d > 2.0 :
+                    self.get_logger().info(f"barrels_callback: barrel 1 dist too far, ignore {state=} {elapsed_time=}")
+
+                elif d>0.6 :
                     # Head toward barrel
                     linX = self.brLinX
                     angZ = a*(1) #TODO scale with linX
+
                 else :
-                    self.get_logger().info(f"barrels_callback: barrel is close {state=} {elapsed_time=} {a=} {d=}")
+                    self.get_logger().info(f"barrels_callback: barrel 1 is close {state=} {elapsed_time=} {a=} {d=}")
                     next_state = "aroundB1"
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {tf_OK=} {a=} {d=} {linX=} {angZ=}")
 
+        # STATE aroundB1
             elif state=="aroundB1" :
                 # Drive around barrel 1 using lidar to keep close to the barrel on robot left side
                 dmax = 1.5 # meters
@@ -508,20 +526,111 @@ class Roborama25ControllerNode(Node):
 
 
                 if elapsed_time >= 30.0 :
+                    self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
+
+                elif currentAngle<0 and currentAngle>self.deg2rad(-80.0) :
+                    self.get_logger().info(f"barrels_callback: went around barrel 1 {state=} {elapsed_time=} {currentAngle=}")
+                    next_state = "gotoB2A"
 
                 elif barrel != None:
                     a = barrel.angle
                     d = barrel.distance
-
                     linX = self.brLinX
-                    angZ = 0.0
+                    angZ = 0.15
                     angZ += (d - 0.2)
                     angZ += (a - (self.deg2rad(90.0)))
 
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
 
-                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {barrel=} {linX=} {angZ=}")
+        # STATE gotoB2A
+            elif state=="gotoB2A" :
+                # Drive toward barrel 2 in straight line to get closer, stop after distance
 
+                targetDist = 0.75
+                driveTime = targetDist/self.brLinX
+
+                if elapsed_time<driveTime :
+                    # Head toward barrel
+                    linX = self.brLinX
+                    angZ = 0.0
+                else :
+                    self.get_logger().info(f"barrels_callback: barrel 2 is close {state=} {elapsed_time=}")
+                    next_state = "gotoB2B"
+
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {driveTime=} {linX=} {angZ=}")
+
+        # STATE gotoB2B
+            elif state=="gotoB2B" :
+                # Drive toward barrel 2 using camera blob detection, stop at distance
+
+                (tf_OK, a, d) = self.getAngleDist2CanBlob()
+
+                timeout = 10.0
+                if elapsed_time>=timeout :
+                    self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
+                    next_state = "end"
+
+                elif d > 2.0 :
+                    self.get_logger().info(f"barrels_callback: barrel 2 dist too far, ignore {state=} {elapsed_time=}")
+
+                elif tf_OK == False :
+                    self.get_logger().info(f"barrels_callback: barrel not detected with cam blob, ignore {state=} {elapsed_time=}")
+                    
+                elif d > 0.6 :
+                    # Head toward barrel
+                    linX = self.brLinX
+                    angZ = a*(1) #TODO scale with linX
+                else :
+                    self.get_logger().info(f"barrels_callback: barrel 2 is close {state=} {elapsed_time=} {a=} {d=}")
+                    next_state = "aroundB2"
+
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {linX=} {angZ=}")
+
+        # STATE aroundB2
+            elif state=="aroundB2" :
+                # Drive around barrel 1 using lidar to keep close to the barrel on robot left side
+                dmax = 1.5 # meters
+                amin = -20.0
+                amax = 20.0
+                targetAngle = 30.0
+
+                barrel = self.lidarDist2can(barrels, dmax, amin, amax)
+
+                if elapsed_time >= 30.0 :
+                    self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
+                    next_state = "end"
+                elif currentAngle>0 and currentAngle<self.deg2rad(targetAngle) :
+                    self.get_logger().info(f"barrels_callback: went around barrel 2 {state=} {elapsed_time=} {currentAngle=}")
+                    next_state = "gotoB3A"
+                elif barrel != None:
+                    a = barrel.angle
+                    d = barrel.distance
+                    linX = self.brLinX
+                    angZ = -0.15
+                    angZ -= (d - 0.2)
+                    angZ += (a - (self.deg2rad(-90.0)))
+
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
+
+        # STATE gotoB3A
+            elif state=="gotoB3A" :
+                # Drive toward barrel 3 in straight line to get closer, stop after distance
+
+                targetDist = 0.75
+                driveTime = targetDist/self.brLinX
+
+                if elapsed_time<driveTime :
+                    # Head toward barrel
+                    linX = self.brLinX
+                    angZ = 0.0
+                else :
+                    self.get_logger().info(f"barrels_callback: barrel 3 is close {state=} {elapsed_time=}")
+                    next_state = "end"
+
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {t=} {linX=} {angZ=}")
+
+        # STATE end
             elif state=="end" :
                 self.enable_br_states = False
                 next_state = "init"
