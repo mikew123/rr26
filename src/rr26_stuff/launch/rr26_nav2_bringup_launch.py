@@ -19,7 +19,6 @@ from launch.actions import LogInfo
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 #added for life cycle support
-from launch_ros.actions import LifecycleNode
 #added to launch other launch files
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
@@ -43,154 +42,153 @@ def generate_launch_description():
  
     # Get the text of the robot description URDF - robot_stat_publisher does not open a file
     with open('urdfs/rr26.urdf','r') as infp:
-    	robot_desc = infp.read()
+        robot_desc = infp.read()
 
-    return launch.LaunchDescription([
+        return launch.LaunchDescription([
 
-        ##### copied from RPLIDAR C1 example
-        DeclareLaunchArgument(
-            'channel_type',
-            default_value=channel_type,
-            description='Specifying channel type of lidar'),
+            ##### copied from RPLIDAR C1 example
+            DeclareLaunchArgument(
+                'channel_type',
+                default_value=channel_type,
+                description='Specifying channel type of lidar'),
 
-        DeclareLaunchArgument(
-            'serial_port',
-            default_value=serial_port,
-            description='Specifying usb port to connected lidar'),
+            DeclareLaunchArgument(
+                'serial_port',
+                default_value=serial_port,
+                description='Specifying usb port to connected lidar'),
 
-        DeclareLaunchArgument(
-            'serial_baudrate',
-            default_value=serial_baudrate,
-            description='Specifying usb port baudrate to connected lidar'),
-        
-        DeclareLaunchArgument(
-            'frame_id',
-            default_value=frame_id,
-            description='Specifying frame_id of lidar'),
+            DeclareLaunchArgument(
+                'serial_baudrate',
+                default_value=serial_baudrate,
+                description='Specifying usb port baudrate to connected lidar'),
+            
+            DeclareLaunchArgument(
+                'frame_id',
+                default_value=frame_id,
+                description='Specifying frame_id of lidar'),
 
-        DeclareLaunchArgument(
-            'inverted',
-            default_value=inverted,
-            description='Specifying whether or not to invert scan data'),
+            DeclareLaunchArgument(
+                'inverted',
+                default_value=inverted,
+                description='Specifying whether or not to invert scan data'),
 
-        DeclareLaunchArgument(
-            'angle_compensate',
-            default_value=angle_compensate,
-            description='Specifying whether or not to enable angle_compensate of scan data'),
+            DeclareLaunchArgument(
+                'angle_compensate',
+                default_value=angle_compensate,
+                description='Specifying whether or not to enable angle_compensate of scan data'),
 
-        DeclareLaunchArgument(
-            'scan_mode',
-            default_value=scan_mode,
-            description='Specifying scan mode of lidar'),
+            DeclareLaunchArgument(
+                'scan_mode',
+                default_value=scan_mode,
+                description='Specifying scan mode of lidar'),
 
-        Node(
-            package='sllidar_ros2',
-            executable='sllidar_node',
-            name='sllidar_node',
-            parameters=[{'channel_type':channel_type,
-                         'serial_port': serial_port, 
-                         'serial_baudrate': serial_baudrate, 
-                         'frame_id': frame_id,
-                         'inverted': inverted, 
-                         'angle_compensate': angle_compensate, 
-                         'scan_mode': scan_mode}],
-            output='screen'),
-        
+            Node(
+                package='sllidar_ros2',
+                executable='sllidar_node',
+                name='sllidar_node',
+                parameters=[{'channel_type':channel_type,
+                            'serial_port': serial_port, 
+                            'serial_baudrate': serial_baudrate, 
+                            'frame_id': frame_id,
+                            'inverted': inverted, 
+                            'angle_compensate': angle_compensate, 
+                            'scan_mode': scan_mode}],
+                output='screen'),
+            
 
-        launch_ros.actions.Node(
-            package='rr26_stuff',
-            executable='rr26_teleop_node',
-            name='teleop'
-        ),
+            launch_ros.actions.Node(
+                package='rr26_stuff',
+                executable='rr26_teleop_node',
+                name='teleop'
+            ),
 
-        ##### MY ROBOT
+            ##### MY ROBOT
 
-        launch_ros.actions.Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            name='robot_state_publisher',
-            parameters=[{
-                'robot_description':robot_desc,
-                }],
-        ),
+            launch_ros.actions.Node(
+                package='robot_state_publisher',
+                executable='robot_state_publisher',
+                name='robot_state_publisher',
+                parameters=[{
+                    'robot_description':robot_desc,
+                    }],
+            ),
 
-        launch_ros.actions.LifecycleNode(
-            package='rr26_stuff',
-            executable='rr26_front_sensors_node',
-            name='front_sensors_node',
-            namespace="",
-        ),
+            launch_ros.actions.LifecycleNode(
+                package='rr26_stuff',
+                executable='rr26_front_sensors_node',
+                name='front_sensors_node',
+                namespace="",
+            ),
 
-        launch_ros.actions.Node(
-            package='rr26_stuff',
-            executable='rr26_wheel_controller_node',
-            name='wheel_controller_node',
-            namespace="",
-        ),
+            launch_ros.actions.Node(
+                package='rr26_stuff',
+                executable='rr26_wheel_controller_node',
+                name='wheel_controller_node',
+                namespace="",
+            ),
 
-        launch_ros.actions.LifecycleNode(
-            package='rr26_stuff',
-            executable='rr26_controller_node',
-            name='controller_node',
-            namespace="",
-        ),
-        
-        launch_ros.actions.Node(
-            package='rr26_stuff',
-            executable='rr26_openmv_serial_node',
-            name='openmv_node',
-            namespace="",
-        ),
+            launch_ros.actions.LifecycleNode(
+                package='rr26_stuff',
+                executable='rr26_controller_node',
+                name='controller_node',
+                namespace="",
+            ),
+            
+            launch_ros.actions.Node(
+                package='rr26_stuff',
+                executable='rr26_openmv_serial_node',
+                name='openmv_node',
+                namespace="",
+            ),
 
-        launch_ros.actions.Node(
-            package='rr26_stuff',
-            executable='rr26_can_xy_node',
-            name='can_xy_node',
-            namespace="",
-        ),
-        
-        # launch_ros.actions.Node(
-        #     package="rr26_stuff",
-        #     executable="rr26_lifecycle_node_manager",
-        #     parameters=[
-        #         {"controller_node_name": "controller_node_lc"},
-        #     ]
-        # ),
+            launch_ros.actions.Node(
+                package='rr26_stuff',
+                executable='rr26_can_xy_node',
+                name='can_xy_node',
+                namespace="",
+            ),
 
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([
-                os.path.join(get_package_share_directory('nav2_bringup'), 'launch'),
-                '/bringup_launch.py']),
-            launch_arguments={
-                'params_file': 'param/rr26_params.yaml',
-                "map": "maps/6can_course_home_map.yaml",
-            }.items()
-        ),
+            launch_ros.actions.Node(
+                package='rr26_stuff',
+                executable='rr26_lidar_can_node',
+                name='lidar_can_node',
+                namespace="",
+            ),
 
-        # Ros2 system stuff
-        # TODO: remove when integrated into rr26_teleop
-        launch_ros.actions.Node(
-            package='teleop_twist_joy',
-            executable='teleop_node',
-            name='teleop_twist',
-            parameters=[{
-                "enable_button": 9,
-                "axis_linear.x": 1,
-                "axis_angular.yaw": 0,
-            }]
-        ),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource([
+                    os.path.join(get_package_share_directory('nav2_bringup'), 'launch'),
+                    '/bringup_launch.py']),
+                launch_arguments={
+                    'params_file': 'param/rr26_params.yaml',
+                    "map": "maps/6can_course_home_map.yaml",
+                }.items()
+            ),
 
-        launch_ros.actions.Node(
-            package='joy',
-            executable='joy_node',
-            name='joy_xbox'
-        ),
-  
-        # launch_ros.actions.Node(
-        #     package='robot_localization',
-        #     executable='ekf_node',
-        #     name='efk_odom',
-        #     parameters=[efk_config]
-        # )
-        
-    ])
+            # Ros2 system stuff
+            # TODO: remove when integrated into rr26_teleop
+            launch_ros.actions.Node(
+                package='teleop_twist_joy',
+                executable='teleop_node',
+                name='teleop_twist',
+                parameters=[{
+                    "enable_button": 9,
+                    "axis_linear.x": 1,
+                    "axis_angular.yaw": 0,
+                }]
+            ),
+
+            launch_ros.actions.Node(
+                package='joy',
+                executable='joy_node',
+                name='joy_xbox'
+            ),
+    
+            # launch_ros.actions.Node(
+            #     package='robot_localization',
+            #     executable='ekf_node',
+            #     name='efk_odom',
+            #     parameters=[efk_config]
+            # )
+            
+        ])

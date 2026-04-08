@@ -30,7 +30,7 @@ setup(
             "rr26_wheel_controller_node = rr26_stuff.rr26_wheel_controller_node:main",
             "rr26_teleop_node = rr26_stuff.rr26_teleop_node:main",
             "rr26_controller_node = rr26_stuff.rr26_controller_node:main",
-            'rr26_lifecycle_node_manager = rr26_stuff.rr26_lifecycle_node_manager:main',
+            'rr26_lidar_can_node = rr26_stuff.rr26_lidar_can_node:main',
         ],
     },
 )
