@@ -796,8 +796,8 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast around barrel
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif currentAngle<0 and currentAngle<self.deg2rad(-170) :
-                    # stop angular rotation - continue straight
+                elif currentAngle>0 and currentAngle<=self.deg2rad(170) :
+                    # stop angular rotation when pointing to start line - continue straight
                     angZ = 0.0
                     self.get_logger().info(f"barrels_callback: went around barrel 3 {state=} {elapsed_time=} {currentAngle=}")
                     next_state = "gotoMid"
@@ -812,7 +812,10 @@ class Roborama25ControllerNode(Node):
         # STATE gotoMid
             elif state=="gotoMid" :
                 # head towards the middle between barrels 1 and 2 (maybe map x=4ft, y=0)
-                if elapsed_time > 10 :
+                linX = linX0
+
+                if elapsed_time > 20 :
+                    linX = 0.0
                     next_state = "gotoBegin"
 
         # STATE gotoBegin
