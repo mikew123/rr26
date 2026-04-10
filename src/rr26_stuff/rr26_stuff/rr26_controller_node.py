@@ -386,19 +386,21 @@ class Roborama25ControllerNode(Node):
         Select the barrel that meets the distance and angle requirements
         return angle, dist to barrel relative to center of robot
         """
-        # barrelDetected:Barrel = None
-        # barrels:list[Barrel] = Barrels.barrel
-        # for barrel in barrels :
-        #     a = barrel.angle
-        #     d = barrel.distance
-        #     if (d<=dmax) :
-        #         barrelDetected = barrel
- 
+
+        # convert angles from degrees to radians
+        amin = self.deg2rad(float(amin))
+        amax = self.deg2rad(float(amax))
+
         barrelDetected:Barrel =  None
         
 
         if  len(barrels.barrel) >0 :
-            barrelDetected = barrels.barrel[0]
+            for barrel in barrels.barrel :
+                a = barrel.angle
+                d = barrel.distance
+                if (d<=dmax) and (a>amin) and (a<amax) :
+                    barrelDetected = barrel
+                    break
         
         # self.get_logger().info(f"lidarDist2can: {barrels=} {barrelDetected=}")
 
@@ -526,7 +528,7 @@ class Roborama25ControllerNode(Node):
                 angZ = angZ0
 
                 # Qualify barrels loosely
-                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=None, amax=None)
+                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-180, amax=180)
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
@@ -557,7 +559,7 @@ class Roborama25ControllerNode(Node):
                 angZ = angZ0
 
                 # Qualify barrel detection tightly while driving around the barrel
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=None, amax=None)
+                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-45, amax=135)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
@@ -635,7 +637,7 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
                 angZ = -angZ0
 
-                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=None, amax=None)
+                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-180, amax=180)
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
@@ -669,7 +671,7 @@ class Roborama25ControllerNode(Node):
                 angZ = -angZ0
 
                 # tighter barrel detect assume close to the side
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=None, amax=None)
+                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=45)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
@@ -749,7 +751,7 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
                 angZ = -angZ0
 
-                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=None, amax=None)
+                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-180, amax=180)
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
@@ -781,7 +783,7 @@ class Roborama25ControllerNode(Node):
                 angZ = -angZ0
 
                 # tighter barrel detect assume close to the side
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=None, amax=None)
+                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=45)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
