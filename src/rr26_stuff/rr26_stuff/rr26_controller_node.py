@@ -420,6 +420,7 @@ class Roborama25ControllerNode(Node):
         # default no movement
         linX:float = 0.0
         angZ:float = 0.0
+
         # nominal linear and angular velocity when going around barrels
         linX0 = 0.1
         angZ0: float = 0.15 # TODO tune
@@ -559,7 +560,7 @@ class Roborama25ControllerNode(Node):
                 angZ = angZ0
 
                 # Qualify barrel detection tightly while driving around the barrel
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-45, amax=135)
+                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=45, amax=135)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
@@ -671,7 +672,7 @@ class Roborama25ControllerNode(Node):
                 angZ = -angZ0
 
                 # tighter barrel detect assume close to the side
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=45)
+                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
@@ -783,7 +784,7 @@ class Roborama25ControllerNode(Node):
                 angZ = -angZ0
 
                 # tighter barrel detect assume close to the side
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=45)
+                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
@@ -798,7 +799,7 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast around barrel
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif currentAngle>0 and currentAngle<=self.deg2rad(170) :
+                elif currentAngle>self.deg2rad(90) and currentAngle<=self.deg2rad(170) :
                     # stop angular rotation when pointing to start line - continue straight
                     angZ = 0.0
                     self.get_logger().info(f"barrels_callback: went around barrel 3 {state=} {elapsed_time=} {currentAngle=}")
@@ -815,15 +816,25 @@ class Roborama25ControllerNode(Node):
             elif state=="gotoMid" :
                 # head towards the middle between barrels 1 and 2 (maybe map x=4ft, y=0)
                 linX = linX0
+                dist = 1.0
+                t = dist/linX
 
-                if elapsed_time > 20 :
+                if elapsed_time > t :
+                    next_state = "gotoHome"
+
+        # STATE gotoHome
+            elif state=="gotoHome" :
+                # Go to the begin point map x=0, y=0, heading 180 deg
+
+                if currentX > 0.0 :
+                    linX = linX0
+                    angZ += 0.1*currentAngle
+                    angZ += 0.1*currentY
+
+                else :
                     linX = 0.0
-                    next_state = "gotoBegin"
-
-        # STATE gotoBegin
-            elif state=="gotoBegin" :
-                # Go to the begin point map x=0, y=0
-                next_state = "end"
+                    angZ = 0.0
+                    next_state = "end"
 
         # STATE end
             elif state=="end" :
