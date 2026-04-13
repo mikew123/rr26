@@ -456,7 +456,7 @@ class Roborama25ControllerNode(Node):
             (_,_,z) = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
             currentAngle = z
             currentX = current_pose.pose.position.x
-            currentY = current_pose.pose.position.x
+            currentY = current_pose.pose.position.y
 
         # STATE init
             if state=="init" :
@@ -498,11 +498,12 @@ class Roborama25ControllerNode(Node):
             elif state=="gotoB1B" :
                 # Drive to get close to barrel1 using camera blob detection
                 linX = linX0
+                timeout = 10.0
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
 
-                timeout = 10.0
                 if elapsed_time>=timeout :
+                    linX=0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
 
@@ -513,8 +514,9 @@ class Roborama25ControllerNode(Node):
                     self.get_logger().info(f"barrels_callback: barrel 1 dist too far, ignore {state=} {elapsed_time=}")
 
                 elif d>0.6 :
+                    aDiff = a - self.deg2rad(0.0)
                     # Head toward barrel
-                    angZ = a*(1) #TODO scale with linX
+                    angZ = aDiff *(1) #TODO scale with linX
 
                 else :
                     self.get_logger().info(f"barrels_callback: barrel 1 is close {state=} {elapsed_time=} {a=} {d=}")
@@ -840,7 +842,7 @@ class Roborama25ControllerNode(Node):
                 if currentX > 0.0 :
 
                     angZ += 0.1*aDiff   
-                    # angZ -= 0.1 * currentY
+                    angZ += 0.5 * currentY
 
                 else :
                     linX = 0.0
