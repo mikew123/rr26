@@ -422,9 +422,9 @@ class Roborama25ControllerNode(Node):
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0 = 0.1
-        angZ0: float = 0.15 # TODO tune
-        angScale = 1.0 # TODO tune
+        linX0: float = 0.1
+        angZ0: float = 3.14*linX0
+        angScale: float = 10*linX0
 
         # initialize when the button is pressed
         if self.gotoBarrelRace==True and self.gotoBarrelRace_last==False :
@@ -513,7 +513,7 @@ class Roborama25ControllerNode(Node):
                 elif d > 2.0 :
                     self.get_logger().info(f"barrels_callback: barrel 1 dist too far, ignore {state=} {elapsed_time=}")
 
-                elif d>0.6 :
+                elif d> 0.75 :
                     aDiff = a - self.deg2rad(0.0)
                     # Head toward barrel
                     angZ = aDiff *(1) #TODO scale with linX
@@ -625,9 +625,9 @@ class Roborama25ControllerNode(Node):
                 elif tf_OK == False :
                     self.get_logger().info(f"barrels_callback: barrel not detected with cam blob, ignore {state=} {elapsed_time=}")
                     
-                elif d > 0.6 :
+                elif d > 0.75 :
                     # Head toward barrel
-                    angZ = a*(1) #TODO scale with linX
+                    angZ = angScale*a
 
                 else :
                     self.get_logger().info(f"barrels_callback: barrel 2 is close {state=} {elapsed_time=} {a=} {d=}")
@@ -743,9 +743,9 @@ class Roborama25ControllerNode(Node):
                     # coast
                     self.get_logger().info(f"barrels_callback: barrel not detected with cam blob, ignore {state=} {elapsed_time=}")
                     
-                elif d > 0.6 :
+                elif d > 0.75 :
                     # Head toward barrel
-                    angZ = a*(1) #TODO scale with linX
+                    angZ = angScale * a
 
                 else :
                     self.get_logger().info(f"barrels_callback: barrel 2 is close {state=} {elapsed_time=} {a=} {d=}")
@@ -847,9 +847,22 @@ class Roborama25ControllerNode(Node):
                 else :
                     linX = 0.0
                     angZ = 0.0
-                    next_state = "end"
+                    next_state = "spin"
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {currentX=} {currentY=} {aDiff=} {linX=} {angZ=}")
+
+
+        # STATE spin
+            elif state=="spin" :
+                # spin 180 to point towards barrel field
+                spinAngle = 3.14
+                spinTime = 5.0
+
+                linX = 0.0
+                angZ = spinAngle/spinTime
+
+                if elapsed_time > spinTime :
+                    next_state = "end"
 
         # STATE end
             elif state=="end" :

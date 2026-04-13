@@ -27,6 +27,10 @@ class OpenmvSerialNode(Node):
 #  self.serial_port = serial.Serial(self.port_name, baudrate=115200, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE,
 #                  xonxoff=False, rtscts=False, stopbits=serial.STOPBITS_ONE, timeout=None, dsrdtr=True)
         self.openmv_serial_port = serial.Serial(self.serial_port, 115200)
+
+        self.openmv_serial_port.reset_input_buffer()
+        self.openmv_serial_port.reset_output_buffer()      
+
         self.serial_timer = self.create_timer((1.0/self.timerRateHz), self.timer_callback
                                               , callback_group=self.cb_group)
         
