@@ -422,7 +422,7 @@ class Roborama25ControllerNode(Node):
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float = 0.1
+        linX0: float = 0.25
         angZ0: float = 3.14*linX0
         angScale: float = 10*linX0
 
@@ -841,8 +841,8 @@ class Roborama25ControllerNode(Node):
 
                 if currentX > 0.0 :
 
-                    angZ += 0.1*aDiff   
-                    angZ += 0.5 * currentY
+                    angZ += linX0 * aDiff   
+                    angZ += 5*linX0 * currentY
 
                 else :
                     linX = 0.0
