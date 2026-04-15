@@ -422,7 +422,7 @@ class Roborama25ControllerNode(Node):
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float = 0.25
+        linX0: float = 0.25 #0.25
         angZ0: float = 3.14*linX0
         angScale: float = 10*linX0
 
@@ -451,6 +451,7 @@ class Roborama25ControllerNode(Node):
             current_pose:PoseStamped=None
             q:Quaternion=None
             (tf_OK,current_pose) = self.getCurrentPose()
+            #TODO: test for tf_OK
             q = current_pose.pose.orientation
             # convert quaterion to euler
             (_,_,z) = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
@@ -1375,8 +1376,9 @@ class Roborama25ControllerNode(Node):
         """
         # try getting pose a few times
         cnt = 0
+        nCnt = 10
         tf_OK = False
-        while tf_OK == False and cnt < 5 :
+        while tf_OK == False and cnt < nCnt :
             try:
                 tf = self.tf_buffer.lookup_transform (
                     'map',
