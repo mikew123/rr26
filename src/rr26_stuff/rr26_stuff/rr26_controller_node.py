@@ -422,7 +422,7 @@ class Roborama25ControllerNode(Node):
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float = 0.25 #0.25
+        linX0: float = 0.25
         angZ0: float = 3.14*linX0
         angScale: float = 10*linX0
 
@@ -562,6 +562,7 @@ class Roborama25ControllerNode(Node):
                 # nominal speeds to circle barrel CCW
                 linX = linX0
                 angZ = angZ0
+                angExit = -90
 
                 # Qualify barrel detection tightly while driving around the barrel
                 barrel = self.lidarDist2can(barrels, dmax=0.6, amin=45, amax=135)
@@ -577,7 +578,7 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast at nominal speeds
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif currentAngle<0 and currentAngle>self.deg2rad(-80.0) :
+                elif currentAngle<0 and currentAngle>self.deg2rad(angExit) :
                     # stop angular rotation - continue straight
                     linX = 0.0
                     self.get_logger().info(f"barrels_callback: went around barrel 1 {state=} {elapsed_time=} {currentAngle=}")
@@ -675,7 +676,8 @@ class Roborama25ControllerNode(Node):
                 # nominal speeds to circle barrel CW
                 linX = linX0
                 angZ = -angZ0
-
+                angExit = 30.0
+                
                 # tighter barrel detect assume close to the side
                 barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
                 if barrel!=None :
@@ -692,7 +694,7 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast around barrel
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif currentAngle>0 and currentAngle<self.deg2rad(30.0) :
+                elif currentAngle>0 and currentAngle<self.deg2rad(angExit) :
                     # stop angular rotation - continue straight
                     angZ = 0.0
                     self.get_logger().info(f"barrels_callback: went around barrel 2 {state=} {elapsed_time=} {currentAngle=}")
@@ -791,6 +793,7 @@ class Roborama25ControllerNode(Node):
                 # Drive around barrel 3 using lidar to go around the barrel CW
                 linX = linX0
                 angZ = -angZ0
+                angExit = 178
 
                 # tighter barrel detect assume close to the side
                 barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
@@ -808,7 +811,7 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast around barrel
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif currentAngle>self.deg2rad(90) and currentAngle<=self.deg2rad(170) :
+                elif currentAngle>self.deg2rad(90) and currentAngle<=self.deg2rad(angExit) :
                     # stop angular rotation when pointing to start line - continue straight
                     angZ = 0.0
                     self.get_logger().info(f"barrels_callback: went around barrel 3 {state=} {elapsed_time=} {currentAngle=}")
