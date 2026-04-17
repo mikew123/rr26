@@ -375,6 +375,8 @@ class Roborama25ControllerNode(Node):
     curr_brState:str = ""
     next_brState:str = "init"
     brCnt = 0
+    currentAngVel = 0.0
+    currentLinVel = 0.0
 
     def deg2rad(self, deg:float) -> float :
         return ((deg/180.0) * math.pi)
@@ -417,12 +419,17 @@ class Roborama25ControllerNode(Node):
 
         barrels = msg
 
+        # estimated sensor lag
+        odomLag:float = 0.1
+
+        currentAngVel = self.currentAngVel
+
         # default no movement
         linX:float = 0.0
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float = 0.25
+        linX0: float = 0.20
         angZ0: float = 3.14*linX0
         angScale: float = 10*linX0
 
@@ -459,6 +466,9 @@ class Roborama25ControllerNode(Node):
             currentX = current_pose.pose.position.x
             currentY = current_pose.pose.position.y
 
+            # correct odom angle for rotation velocity
+            currentAngle += currentAngVel * odomLag
+
         # STATE init
             if state=="init" :
                 # Initialize 
@@ -487,9 +497,11 @@ class Roborama25ControllerNode(Node):
                     linX = 0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
+
                 elif currentAngle>=targetAngle :
                     self.get_logger().info(f"barrels_callback: pointed toward barrel 1 {state=} {elapsed_time=} {currentAngle=}")
                     next_state = "gotoB1B"
+
                 else :
                     angZ = (linX * targetAngle)/(1.5*self.ft2m)
 
@@ -563,6 +575,9 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
                 angZ = angZ0
                 angExit = -90
+
+                a = 0.0
+                d = 0.0
 
                 # Qualify barrel detection tightly while driving around the barrel
                 barrel = self.lidarDist2can(barrels, dmax=0.6, amin=45, amax=135)
@@ -886,6 +901,8 @@ class Roborama25ControllerNode(Node):
             self.next_brState = next_state
             self.curr_brState = state
             
+            self.currentAngVel = angZ
+            self.currentLinVel = linX
 
 
     def runWPoints(self) :
