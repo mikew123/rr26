@@ -874,9 +874,9 @@ class Roborama25ControllerNode(Node):
                     aDiff = (self.deg2rad(-180) - currentAngle)
 
                 if currentX > 0.0 :
-
+                    # vear toward center line and angle due "south"
                     angZ += linX0 * aDiff   
-                    angZ += 5*linX0 * currentY
+                    angZ += 10*linX0 * currentY
 
                 else :
                     linX = 0.0

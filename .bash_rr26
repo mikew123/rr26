@@ -29,9 +29,10 @@ source install/setup.bash
 # Arduino command line
 alias arduino-cli=~/local/bin/arduino-cli
 
-# alias to start roboram 2026 ros code
-alias rr26="source ~/rr26_ws/hubreset.sh;
-    clear; colcon build;\
+# alias to start roborama 2026 ros code
+alias rr26="clear;\
+    source ~/rr26_ws/hubreset.sh;\
+    colcon build;\
     source install/setup.bash;\
     ros2 launch rr26_stuff rr26_nav2_bringup_launch.py"
 
