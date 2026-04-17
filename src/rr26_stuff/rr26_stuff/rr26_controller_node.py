@@ -421,8 +421,9 @@ class Roborama25ControllerNode(Node):
         barrels = msg
 
         # estimated sensor lag
-        odomLag:float = 0.1
-        camLag:float = 0.2
+        odomLag:float  = 0.1
+        camLag:float   = 0.2
+        lidarLag:float = 0.1
 
         # get the current velocities from the last velocity command
         currentAngVel = self.currentAngVel
@@ -567,6 +568,8 @@ class Roborama25ControllerNode(Node):
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
+                    # attempt to correct lidar barrel detect angle
+                    a += currentAngVel * lidarLag
 
                 if elapsed_time >= 30.0 :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
@@ -602,6 +605,8 @@ class Roborama25ControllerNode(Node):
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
+                    # attempt to correct lidar barrel detect angle
+                    a += currentAngVel * lidarLag
 
                 if elapsed_time >= 30.0 :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
@@ -683,6 +688,8 @@ class Roborama25ControllerNode(Node):
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
+                    # attempt to correct lidar barrel detect angle
+                    a += currentAngVel * lidarLag
 
                 if elapsed_time >= 30.0 :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
@@ -718,6 +725,8 @@ class Roborama25ControllerNode(Node):
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
+                    # attempt to correct lidar barrel detect angle
+                    a += currentAngVel * lidarLag
 
                 if elapsed_time >= 30.0 :
                     linX = 0.0
@@ -804,6 +813,8 @@ class Roborama25ControllerNode(Node):
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
+                    # attempt to correct lidar barrel detect angle
+                    a += currentAngVel * lidarLag
 
                 if elapsed_time >= 30.0 :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
@@ -837,6 +848,8 @@ class Roborama25ControllerNode(Node):
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
+                    # attempt to correct lidar barrel detect angle
+                    a += currentAngVel * lidarLag
 
                 if elapsed_time >= 30.0 :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
