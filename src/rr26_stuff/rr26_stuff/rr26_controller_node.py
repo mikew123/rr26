@@ -417,21 +417,28 @@ class Roborama25ControllerNode(Node):
 
         """
 
+        # rename Barrels msg
         barrels = msg
 
         # estimated sensor lag
         odomLag:float = 0.1
 
+        # get the current velocities from the last velocity command
         currentAngVel = self.currentAngVel
+        currentLinVel = self.currentLinVel
 
         # default no movement
         linX:float = 0.0
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float = 0.20
-        angZ0: float = 3.14*linX0
+        linX0: float    = 0.20
+        angZ0: float    = 3*linX0
         angScale: float = 10*linX0
+
+        # set distance and angle from barrel when going around it
+        distFromBarrel = 0.25 # center of robot to center of can
+        angleToBarrel = self.deg2rad(90.0)
 
         # initialize when the button is pressed
         if self.gotoBarrelRace==True and self.gotoBarrelRace_last==False :
@@ -439,6 +446,7 @@ class Roborama25ControllerNode(Node):
 
 
         stateChange = False
+
         if self.enable_br_states==True :
             current_time = self.get_clock().now()
 
@@ -468,6 +476,13 @@ class Roborama25ControllerNode(Node):
 
             # correct odom angle for rotation velocity
             currentAngle += currentAngVel * odomLag
+
+            # correct odom XY location with linear velocity
+            # TODO: use corrected Angle or non-corrected 
+            velX = currentLinVel * math.cos(currentAngle)
+            velY = currentLinVel * math.sin(currentAngle)
+            currentX += velX * odomLag
+            currentY += velY * odomLag
 
         # STATE init
             if state=="init" :
@@ -563,8 +578,8 @@ class Roborama25ControllerNode(Node):
                     next_state = "aroundB1B"
 
                 else :
-                    angZ += angScale*(d - 0.2)
-                    angZ += angScale*(a - (self.deg2rad(90.0)))
+                    angZ += angScale*(d - distFromBarrel)
+                    angZ += angScale*(a - angleToBarrel)
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
 
@@ -601,8 +616,8 @@ class Roborama25ControllerNode(Node):
 
                 else :
                     # control angular ratation to drive around the barrel
-                    angZ += angScale*(d - 0.2)
-                    angZ += angScale*(a - (self.deg2rad(90.0)))
+                    angZ += angScale*(d - distFromBarrel)
+                    angZ += angScale*(a - angleToBarrel)
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
 
@@ -680,8 +695,8 @@ class Roborama25ControllerNode(Node):
                     next_state = "aroundB2B"
                 else :
                     # control angular rotation to drive around the barrel
-                    angZ -= angScale*(d - 0.2)
-                    angZ += angScale*(a - (self.deg2rad(-90.0)))
+                    angZ -= angScale*(d - distFromBarrel)
+                    angZ += angScale*(a + angleToBarrel)
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
 
@@ -717,8 +732,8 @@ class Roborama25ControllerNode(Node):
 
                 else :
                     # control angular rotation to drive around the barrel
-                    angZ -= angScale*(d - 0.2)
-                    angZ += angScale*(a - (self.deg2rad(-90.0)))
+                    angZ -= angScale*(d - distFromBarrel)
+                    angZ += angScale*(a + angleToBarrel)
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
 
@@ -798,8 +813,8 @@ class Roborama25ControllerNode(Node):
 
                 else :
                     # control angular rotation to drive around the barrel
-                    angZ -= angScale*(d - 0.2)
-                    angZ += angScale*(a - (self.deg2rad(-90.0)))
+                    angZ -= angScale*(d - distFromBarrel)
+                    angZ += angScale*(a + angleToBarrel)
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
 
@@ -834,8 +849,8 @@ class Roborama25ControllerNode(Node):
 
                 else :
                     # control angular rotation to drive around the barrel
-                    angZ -= angScale*(d - 0.2)
-                    angZ += angScale*(a - (self.deg2rad(-90.0)))
+                    angZ -= angScale*(d - distFromBarrel)
+                    angZ += angScale*(a + angleToBarrel)
 
                 self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {barrel=} {linX=} {angZ=}")
 
