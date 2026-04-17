@@ -422,6 +422,7 @@ class Roborama25ControllerNode(Node):
 
         # estimated sensor lag
         odomLag:float = 0.1
+        camLag:float = 0.2
 
         # get the current velocities from the last velocity command
         currentAngVel = self.currentAngVel
@@ -529,6 +530,8 @@ class Roborama25ControllerNode(Node):
                 timeout = 10.0
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
+                # attempt to correct can detect angle 
+                a += currentAngVel * camLag
 
                 if elapsed_time>=timeout :
                     linX=0.0
@@ -644,6 +647,8 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
+                # attempt to correct can detect angle 
+                a += currentAngVel * camLag
 
                 timeout = 10.0
                 if elapsed_time>=timeout :
@@ -761,6 +766,8 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
+                # attempt to correct can detect angle 
+                a += currentAngVel * camLag
 
                 timeout = 10.0
                 if elapsed_time>=timeout :
