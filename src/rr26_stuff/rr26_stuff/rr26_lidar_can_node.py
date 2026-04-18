@@ -112,10 +112,10 @@ class rr26LidarCanNode(Node):
 
                     if diff<(barrelWidth/1) and iCntDiff<=3 : # end of valid sequence
                         detActive = False
-                        a = iMin * ainc # angle to barrel
-                        # convert 0 to 2pi to +=pi
+                        a = (iMin * ainc) - math.pi # angle to barrel
+                        # limit angle to +- pi
                         if a>math.pi :
-                            a-= 2*math.pi
+                            a -= 2*math.pi
                         b = Barrel()
                         b.distance = dMin + barrelWidth/2 # distance to the center of barrel
                         b.angle = a
