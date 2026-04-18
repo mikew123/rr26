@@ -155,6 +155,13 @@ def generate_launch_description():
                 namespace="",
             ),
 
+            launch_ros.actions.Node(
+                package='rr26_stuff',
+                executable='rr26_scan_fix_node',
+                name='scan_fix_node',
+                namespace="",
+            ),
+
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([
                     os.path.join(get_package_share_directory('nav2_bringup'), 'launch'),

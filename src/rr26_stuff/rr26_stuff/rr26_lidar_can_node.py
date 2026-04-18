@@ -3,12 +3,9 @@
 
 import rclpy
 import math
-import numpy as np
 
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from tf2_ros.transform_broadcaster import TransformBroadcaster
-from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import LaserScan
 
 from robo24_interfaces.msg import Barrels, Barrel
@@ -27,14 +24,39 @@ class rr26LidarCanNode(Node):
     def __init__(self):
         super().__init__('rr26_lidar_can_node')
 
-        self.scan_msg_subscriber = self.create_subscription( LaserScan, 'scan', self.scan_msg_callback, 10)
+        self.scan_fix_msg_subscriber = self.create_subscription( LaserScan, 'scan_fix', self.scan_fix_msg_callback, 10)
         self.barrels_msg_publisher = self.create_publisher(Barrels, 'barrels', 10)
-        self.tf_broadcaster = TransformBroadcaster(self)
 
         self.get_logger().info(f"rr26LidarCanNode: Started")
 
     def cleanup(self) :
         self.barrels_msg_publisher.destroy()
+
+    def scan_fix_msg_callback(self, msg:LaserScan) -> None :
+        """
+        Process the Lidar scan data to remove the rays that include
+        the can that is being persued and create a scan_obs message
+        which is used for Nav2 obstacle avoidance
+        The idea is to not avoid approaching the can being persued
+
+        The can is initialy identified using the OpenMV camera blob detection
+        As the robot gets closer and the camera can not reliably ID it anymore 
+        the Lidar data is used to track the can and pull it into the can
+        catch basket. This replaces the single point L4 range detector sensor by
+        Using the center rays for distance to object directly in front
+
+        The Lidar is also used for barrel racing, the camera blob detection is
+        not used. 3 cans are to be detected, but only 2 will be detected when a 
+        can blocks the can "behind" it
+        """
+
+        # detect object in front for 6 can and provide distance.
+        # this replaces the TOF L4 range sensor that has a narrow detect angle.
+        # detect cans for barrel racing and provide distance and angle (not xy).
+        # The center can can be up to 12 feet from the Lidar sensor at the start.
+        # and the cans are in an equal triangle about 6 to 8 ft from each other.
+
+        self.barrelDet(msg)
 
     def barrelDet(self, msg:LaserScan) -> None :
         """

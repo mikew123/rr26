@@ -31,6 +31,7 @@ setup(
             "rr26_teleop_node = rr26_stuff.rr26_teleop_node:main",
             "rr26_controller_node = rr26_stuff.rr26_controller_node:main",
             'rr26_lidar_can_node = rr26_stuff.rr26_lidar_can_node:main',
+            'rr26_scan_fix_node = rr26_stuff.rr26_scan_fix_node:main',
         ],
     },
 )
