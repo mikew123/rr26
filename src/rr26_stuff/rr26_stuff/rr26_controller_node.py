@@ -842,7 +842,7 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
                 angZ = -angZ0
                 # exit angle should be 180 but there is a discontinuity at 180
-                angExit = 178
+                angExit = 175 # needs more overshoot space for higher speeds
 
                 # tighter barrel detect assume close to the side
                 barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
