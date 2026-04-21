@@ -21,7 +21,7 @@ class Roborama25TeleopNode(Node):
     fwdRev_last = 0
     speed_last = 0
     fwdRevMpsMax = 1.0 # maximum fwd/rev meters per sec
-    spinRotPsMax = 2.0/25 # maximum spin rotations per second
+    spinRotPsMax = 2.0/10 # maximum spin rotations per second
 
     pi = 3.14159265
 

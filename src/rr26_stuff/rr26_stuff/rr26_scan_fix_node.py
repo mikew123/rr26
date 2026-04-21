@@ -64,6 +64,8 @@ class rr26ScanFixNode(Node):
         A corrected /scan_fix message is published
         """
 
+        scanLag:float = 0.0
+
         linx = self.linX
         angZ = self.angZ
 
@@ -77,19 +79,28 @@ class rr26ScanFixNode(Node):
         ainc = msg.angle_increment
         rays = msg.ranges
         nrays = len(rays)
-        stime = msg.scan_time
+        scanT = msg.scan_time
 
-        # calc the angular error compensation
-        angErr = self.angZ * stime
-        amax += angErr
-        ainc = (amax - amin) / nrays
-        msg.angle_max = amax
-        msg.angle_increment = ainc
+        # calc scan rotation motion compensation
+        angErr = angZ * scanT
+        # amax += angErr
+        amin += angErr
+        ainc = (amax - amin) / (nrays -1)
+
+        # calc scan lag motion compensation
+        alagErr = angZ * scanLag
+        amin += alagErr
+        amax += alagErr
+
+        # Update scan data in message
+        # msg.angle_max = amax
+        # msg.angle_min = amin
+        # msg.angle_increment = ainc
 
         self.scan_fix_msg_publisher.publish(msg_fix)
 
         if angZ != 0.0 :
-            self.get_logger().info(f"scan_msg_callback: {angZ=} {stime=} {angErr=} {ainc=} {amin=} {amax=} {nrays=}")
+            self.get_logger().info(f"scan_msg_callback: {angZ=} {scanT=} {angErr=} {ainc=} {amin=} {amax=} {nrays=}")
 
 def main(args=None):
     rclpy.init(args=args)

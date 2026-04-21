@@ -124,12 +124,14 @@ class Roborama25WheelControllerNode(Node):
                 
                 received_data = self.wheel_serial_port.readline().decode().strip()
                 # self.get_logger().info(f"Received: {received_data}")
-                
-                # Publish the received serial line as a String message
-                emsg = String()
-                emsg.data = received_data
-                # assume it is an OD encoder message
-                self.encoders_msg_publisher.publish(emsg)
+
+                odStrArray = received_data.split(" ")
+                if odStrArray[0]=="OD" and len(odStrArray)==6:
+                    # Publish the received serial line as a String message
+                    emsg = String()
+                    emsg.data = received_data
+                    # assume it is an OD encoder message
+                    self.encoders_msg_publisher.publish(emsg)
 
         except Exception as ex:
             self.get_logger().warning(f"wheel controller timer serial read exception {ex}")
