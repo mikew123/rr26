@@ -48,7 +48,8 @@ class Roborama25WheelControllerNode(Node):
 
     wheelDiameter = 0.0840 #0.0839 #0.084
     wheelEncoderCounts = 48*20.408666666
-    wheelDistance = 0.2785 #0.279 #0.280
+    # tuned using odom rotation pose in Rviz2 2D map with scan points
+    wheelDistance = 0.2802 #0.2785
 
     # odomDiameter = 0.048 * 65651/65910 # adjust for 5M-5cm travel, re-glued
     # odomEncoderCounts = 2000.0 #per rotation
