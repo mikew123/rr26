@@ -51,17 +51,10 @@ class Roborama25WheelControllerNode(Node):
     # tuned using odom rotation pose in Rviz2 2D map with scan points
     wheelDistance = 0.2802 #0.2785
 
-    # odomDiameter = 0.048 * 65651/65910 # adjust for 5M-5cm travel, re-glued
-    # odomEncoderCounts = 2000.0 #per rotation
-    # #odomDistance = 0.224 #around center
-    # odomDistance = 0.224 * (pi/(3.024297+0.0075))#Calibrated using wheel odom
-
     odMesssageCount = 0
 
     od_last = np.empty(5, dtype=int)
     xy_last = np.empty(3, dtype=float)
-
-    # xyo_last = np.empty(3, dtype=float)
 
     spin_last = 0
     fwdRev_last = 0

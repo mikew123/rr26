@@ -2,12 +2,17 @@
 
 
 import rclpy
+import math
 
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
+
+from builtin_interfaces.msg import Time, Duration
+# from tf2_ros import Duration
 
 class rr26ScanFixNode(Node):
     """
@@ -17,8 +22,8 @@ class rr26ScanFixNode(Node):
     def __init__(self):
         super().__init__('rr26_scan_fix_node')
 
-        self.cmd_vel_subscription = self.create_subscription(Twist, '/cmd_vel', 
-                                                             self.cmd_vel_callback, 10)
+        self.wheel_odom_subscription = self.create_subscription(Odometry, 'wheel_odom', 
+                                                             self.wheel_odom_callback, 10)
         self.scan_msg_subscriber = self.create_subscription( LaserScan, 'scan', 
                                                             self.scan_msg_callback, 10)
         self.scan_fix_msg_publisher = self.create_publisher(LaserScan, 'scan_fix', 10)
@@ -32,46 +37,78 @@ class rr26ScanFixNode(Node):
 
 
     # robot velocities used for motion compensation of Lidar scan data
-    linX:float = 0.0
-    angZ:float = 0.0
+    odomPause:bool = False
+    odomTstamp:Time = None
+    linVelX:float = 0.0
+    angVelZ:float = 0.0
+    odomTstamp_last:Time = None
+    linVelX_last:float = 0.0
+    angVelZ_last:float = 0.0
+    linCurve:list = []
 
     def timer_callback(self) -> None :
         """
         Clears the current velocities when there is no /cmd_vel data
         """
-        linX = 0.0
-        angZ = 0.0
+        self.linX = 0.0
+        self.angZ = 0.0
+        self.odomTstamp = None
 
-
-    def cmd_vel_callback(self, msg:Twist) -> None :
+    def wheel_odom_callback(self, msg:Odometry) -> None :
         """
-        Extracts the current linear and angular velocities
-        which are used to "fix" the Lidar scan data
-        The velocities are saved in global variables 
-        The saved velocities are cleared to 0.0 if the timer times out
+        Save wheel odometry data in global variables for 
+        Lidar motion compensation
+        The wheel odom rate is higher than the Lidar scan rate
         """
-
         self.timer.reset()
 
-        self.linX = msg.linear.x
-        self.angZ = msg.angular.z
+        if self.odomPause : return
+        # update odom encoder data when not paused
+        # the application pauses this while accessing the data
+
+        self.odomTstamp_last = self.odomTstamp
+        self.linVelX_last = self.linVelX
+        self.angVelZ_last = self.angVelZ
+
+        self.odomTstamp = msg.header.stamp
+        self.linVelX = msg.twist.twist.linear.x
+        self.angVelZ = msg.twist.twist.angular.z
+
+        # calc acceleration
+        if self.odomTstamp!=None and self.odomTstamp_last!=None :
+            t0 = self.odomTstamp_last.sec + 1e-9*self.odomTstamp_last.nanosec
+            t1 = self.odomTstamp.sec + 1e-9*self.odomTstamp.nanosec
+            dt = t1 - t0
+            if dt>0 and dt<1 :
+                self.linAccX = (self.linVelX - self.linVelX_last)/dt
+                self.angAccZ = (self.angVelZ - self.angVelZ_last)/dt
+            else :
+                self.linAccX = 0.0
+                self.angAccZ = 0.0
     
     def scan_msg_callback(self, msg:LaserScan) -> None :
         """
+        The Lidar device which created the scan data is a RPLidar C1
         Processes the raw Lidar scan data to fix the rotational
         and directional distortions caused my robot movement while 
         the Lidar is scanning (rotating)
         A corrected /scan_fix message is published
         """
 
-        scanLag:float = 0.0
+        # stop odom data from beimg updated while accesing it
+        self.odomPause = True
+        odomTstamp:Time = self.odomTstamp
+        linX:float = self.linVelX
+        angZ:float = self.angVelZ
+        self.odomPause = False
 
-        linx = self.linX
-        angZ = self.angZ
+        odomTsec:float = None
+        if odomTstamp != None : odomTsec = odomTstamp.sec + 1e-9*odomTstamp.nanosec
 
         # copy all the original scan message variables before fixing
         msg_fix = msg
-        
+    
+
         # extract the lidar scan parameters
         rmin = msg.range_min
         amin = msg.angle_min
@@ -81,26 +118,61 @@ class rr26ScanFixNode(Node):
         nrays = len(rays)
         scanT = msg.scan_time
 
-        # calc scan rotation motion compensation
+        scanTstamp:Time = msg_fix.header.stamp
+        scanTsec:float = scanTstamp.sec +1e-9*scanTstamp.nanosec #Start scan time
+        scanTsec += scanT # end scan time
+
+        lagTsec:float = 0.0
+        if odomTsec != None : lagTsec = scanTsec - odomTsec
+
+        # calc distance compesation curve once
+        if self.linCurve == [] :
+            for i in range(0, nrays-1) :
+                line = 1.0 - float(i)/nrays # 1 to 0
+                dadj = line * math.cos(line*2*math.pi)
+                self.linCurve.append(dadj)
+            # self.get_logger().info(f"scan_msg_callback: {self.linCurve=}")
+        linCurve:list = self.linCurve
+
+        # calc scan motion compensation
+        # angular rotation
         angErr = angZ * scanT
-        # amax += angErr
-        amin += angErr
+        amax += angErr
+        # amin += angErr
         ainc = (amax - amin) / (nrays -1)
+        # linear distance
+        distErr = linX * scanT
+        for i in range(0, nrays-1) :
+            rays[i] += distErr * linCurve[i]
 
         # calc scan lag motion compensation
-        alagErr = angZ * scanLag
-        amin += alagErr
-        amax += alagErr
+        #NOTE: does not seem to help + or - adjust
+        # alagErr = angZ * lagTsec
+        # amin -= alagErr
+        # amax -= alagErr
 
         # Update scan data in message
-        # msg.angle_max = amax
-        # msg.angle_min = amin
-        # msg.angle_increment = ainc
+
+        # set fixed scan timestamp to end of scan
+        ns:int = msg.header.stamp.nanosec + int(1e9*scanT)
+        sec:int = msg.header.stamp.sec
+        if ns >= 1000000000 :
+            # handle nsec overflow
+            sec += 1
+            ns -= 1000000000
+        msg.header.stamp.sec = sec
+        msg.header.stamp.nanosec = ns
+
+        msg.angle_max = amax
+        msg.angle_min = amin
+        msg.angle_increment = ainc
+        msg.ranges = rays
 
         self.scan_fix_msg_publisher.publish(msg_fix)
 
         if angZ != 0.0 :
-            self.get_logger().info(f"scan_msg_callback: {angZ=} {scanT=} {angErr=} {ainc=} {amin=} {amax=} {nrays=}")
+            self.get_logger().info(f"scan_msg_callback: {lagTsec=} {linX=} {angZ=} {scanT=} {distErr=} {angErr=} {ainc=} {amin=} {amax=} {nrays=}")
+
 
 def main(args=None):
     rclpy.init(args=args)
