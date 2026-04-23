@@ -123,8 +123,8 @@ class rr26ScanFixNode(Node):
         amin = msg.angle_min
         amax = msg.angle_max
         ainc = msg.angle_increment
-        rays = msg.ranges
-        nrays = len(rays)
+        ranges = msg.ranges
+        nranges = len(ranges)
         scanT = msg.scan_time
 
         scanTstamp:Time = msg_fix.header.stamp
@@ -137,9 +137,15 @@ class rr26ScanFixNode(Node):
         angZ -= angAccZ * lagTsec
 
         # calc distance compesation curve once
+        # A cos function is mpy with a linear functio 1.0 to 0.0
+        # Distances at start of scan are adjusted a lot
+        # Distances at end of scan are not adjusted as much
+        # This causes the range values to be ajusted for the end time of the sweep
+        # TODO: calc linear velocity for each range value using linear acceleration
+        #       this could improve motion correction
         if self.linCurve == [] :
-            for i in range(0, nrays-1) :
-                line = 1.0 - float(i)/nrays # 1 to 0
+            for i in range(0, nranges-1) :
+                line = 1.0 - float(i)/nranges # 1 to 0
                 dadj = line * math.cos(line*2*math.pi)
                 self.linCurve.append(dadj)
             # self.get_logger().info(f"scan_msg_callback: {self.linCurve=}")
@@ -151,18 +157,19 @@ class rr26ScanFixNode(Node):
         angErr = angZ * scanT
         amax -= angErr
         # amin += angErr
-        ainc = (amax - amin) / (nrays -1)
+        ainc = (amax - amin) / (nranges -1)
 
         # linear distance
+        # distance error caused by movement for 1 scan time
         distErr = linX * scanT
-        for i in range(0, nrays-1) :
-            rays[i] += distErr * linCurve[i]
+        for i in range(0, nranges-1) :
+            ranges[i] += distErr * linCurve[i]
 
         # calc scan lag motion compensation
         #NOTE: does not seem to help + or - adjust
-        # alagErr = angZ * lagTsec
-        # amin -= alagErr
-        # amax -= alagErr
+        alagErr = angZ * lagTsec
+        amin -= alagErr
+        amax -= alagErr
 
         # Update scan data in message
 
@@ -179,12 +186,12 @@ class rr26ScanFixNode(Node):
         msg.angle_max = amax
         msg.angle_min = amin
         msg.angle_increment = ainc
-        msg.ranges = rays
+        msg.ranges = ranges
 
         self.scan_fix_msg_publisher.publish(msg_fix)
 
         if angZ != 0.0 :
-            self.get_logger().info(f"scan_msg_callback: {lagTsec=} {linX=} {angZ=} {scanT=} {distErr=} {angErr=} {ainc=} {amin=} {amax=} {nrays=}")
+            self.get_logger().info(f"scan_msg_callback: {lagTsec=} {linX=} {angZ=} {scanT=} {distErr=} {angErr=} {ainc=} {amin=} {amax=} {nranges=}")
 
 
 def main(args=None):
