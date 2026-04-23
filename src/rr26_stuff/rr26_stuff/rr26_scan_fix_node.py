@@ -44,15 +44,22 @@ class rr26ScanFixNode(Node):
     odomTstamp_last:Time = None
     linVelX_last:float = 0.0
     angVelZ_last:float = 0.0
+    linAccX:float = 0.0
+    angAccZ:float = 0.0
     linCurve:list = []
 
     def timer_callback(self) -> None :
         """
         Clears the current velocities when there is no /cmd_vel data
         """
+        self.odomTstamp = None
+        self.odomTstamp_last = None
         self.linX = 0.0
         self.angZ = 0.0
-        self.odomTstamp = None
+        self.linVelX_last = 0.0
+        self.angVelZ_last = 0.0
+        self.linAccX = 0.0
+        self.angAccZ = 0.0
 
     def wheel_odom_callback(self, msg:Odometry) -> None :
         """
@@ -100,6 +107,8 @@ class rr26ScanFixNode(Node):
         odomTstamp:Time = self.odomTstamp
         linX:float = self.linVelX
         angZ:float = self.angVelZ
+        linAccX:float = self.linAccX
+        angAccZ: float = self.angAccZ
         self.odomPause = False
 
         odomTsec:float = None
@@ -122,8 +131,10 @@ class rr26ScanFixNode(Node):
         scanTsec:float = scanTstamp.sec +1e-9*scanTstamp.nanosec #Start scan time
         scanTsec += scanT # end scan time
 
+        # Extrapolate the odom rotational velocity to the middle of the scan time
         lagTsec:float = 0.0
-        if odomTsec != None : lagTsec = scanTsec - odomTsec
+        if odomTsec != None : lagTsec = (scanTsec + (scanT/2)) - odomTsec
+        angZ -= angAccZ * lagTsec
 
         # calc distance compesation curve once
         if self.linCurve == [] :
@@ -135,11 +146,13 @@ class rr26ScanFixNode(Node):
         linCurve:list = self.linCurve
 
         # calc scan motion compensation
+
         # angular rotation
         angErr = angZ * scanT
-        amax += angErr
+        amax -= angErr
         # amin += angErr
         ainc = (amax - amin) / (nrays -1)
+
         # linear distance
         distErr = linX * scanT
         for i in range(0, nrays-1) :
