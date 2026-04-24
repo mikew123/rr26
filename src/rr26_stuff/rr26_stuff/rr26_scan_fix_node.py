@@ -126,12 +126,13 @@ class rr26ScanFixNode(Node):
         scanTsec: float = scanTstamp.sec + 1e-9 * scanTstamp.nanosec  # Start scan time
         scanTsec_end: float = scanTsec + scanT  # End scan time
 
-        # Extrapolate the odom rotational velocity to the middle of the scan time
+        # Extrapolate the odom velocity
         lagTsec: float = 0.0
         if odomTsec != None:
             lagTsec = (scanTsec_end - odomTsec)  # Time from odom measurement to scan end
             # Apply lag compensation: add the rotational velocity change over the lag period
-            angZ += angAccZ * lagTsec
+            angZ += angAccZ * (lagTsec * 1) # adjust to middle of scan time for average vel
+            linX += linAccX * lagTsec
 
         # calc distance compensation curve once
         # A cos function is mpy with a linear functio 1.0 to 0.0
@@ -160,14 +161,12 @@ class rr26ScanFixNode(Node):
         # linear distance
         # distance error caused by movement for 1 scan time
         distErr = linX * scanT
+        # estiamted distance error per range
+        distErrdt = (linAccX * (scanT/nranges)) * scanT
         for i in range(0, nranges) :
+            # adjust linear velocity over time for better motion compensation
+            distErr += distErrdt
             ranges[i] += distErr * (1-linCurve[i]) # reversed compensation curve
-
-        # calc scan lag motion compensation
-        #NOTE: does not seem to help + or - adjust
-        # alagErr = angZ * lagTsec
-        # amin -= alagErr
-        # amax -= alagErr
 
         # Update scan data in message
         
