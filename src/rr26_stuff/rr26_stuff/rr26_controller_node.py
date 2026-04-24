@@ -533,6 +533,8 @@ class Roborama25ControllerNode(Node):
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
                 # attempt to correct can detect angle 
                 a -= currentAngVel * camLag
+                # offset detect angle to point toward side of can
+                a += math.radians(-20.0)
 
                 if elapsed_time>=timeout :
                     linX=0.0
@@ -562,6 +564,9 @@ class Roborama25ControllerNode(Node):
                 # nominal speeds to circle barrel CCW
                 linX = linX0
                 angZ = angZ0
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 # Qualify barrels loosely
                 barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-90, amax=135)
@@ -571,7 +576,7 @@ class Roborama25ControllerNode(Node):
                     # attempt to correct lidar barrel detect angle
                     a -= currentAngVel * lidarLag
 
-                if elapsed_time >= 30.0 :
+                if elapsed_time >= tMax :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
 
@@ -579,7 +584,7 @@ class Roborama25ControllerNode(Node):
                     # ignore no barrel detect
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif a<self.deg2rad(95.0) and a>self.deg2rad(85.0) and d<0.5:
+                elif a<self.deg2rad(100.0) and a>self.deg2rad(80.0) and d<0.5:
                     self.get_logger().info(f"barrels_callback: got next to barrel 1 {state=} {elapsed_time=} {currentAngle=}")
                     next_state = "aroundB1B"
 
@@ -596,6 +601,9 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
                 angZ = angZ0
                 angExit = -90
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 a = 0.0
                 d = 0.0
@@ -608,7 +616,7 @@ class Roborama25ControllerNode(Node):
                     # attempt to correct lidar barrel detect angle
                     a -= currentAngVel * lidarLag
 
-                if elapsed_time >= 30.0 :
+                if elapsed_time >= tMax :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
 
@@ -650,13 +658,17 @@ class Roborama25ControllerNode(Node):
             elif state=="gotoB2B" :
                 # Drive toward barrel 2 using camera blob detection, stop at distance
                 linX = linX0
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
                 # attempt to correct can detect angle 
                 a -= currentAngVel * camLag
+                # offset detect angle to point toward side of can
+                a += math.radians(20.0)
 
-                timeout = 10.0
-                if elapsed_time>=timeout :
+                if elapsed_time>=tMax :
                     linX = 0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
@@ -683,6 +695,9 @@ class Roborama25ControllerNode(Node):
                 # nominal speeds to circle barrel CW
                 linX = linX0
                 angZ = -angZ0
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-135, amax=90)
                 if barrel!=None:
@@ -691,7 +706,7 @@ class Roborama25ControllerNode(Node):
                     # attempt to correct lidar barrel detect angle
                     a -= currentAngVel * lidarLag
 
-                if elapsed_time >= 30.0 :
+                if elapsed_time >= tMax :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     linX = 0.0
                     angZ = 0.0
@@ -701,7 +716,7 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast at nominal speeds
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif a>self.deg2rad(-95.0) and a<self.deg2rad(-85.0) and d<0.5:
+                elif a>self.deg2rad(-100.0) and a<self.deg2rad(-80.0) and d<0.5:
                     # coast at nominal speeds
                     self.get_logger().info(f"barrels_callback: drove the side of barrel 2 {state=} {elapsed_time=} {currentAngle=}")
                     next_state = "aroundB2B"
@@ -719,7 +734,10 @@ class Roborama25ControllerNode(Node):
                 linX = linX0
                 angZ = -angZ0
                 angExit = 30.0
-                
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
+
                 # tighter barrel detect assume close to the side
                 barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
                 if barrel!=None :
@@ -728,7 +746,7 @@ class Roborama25ControllerNode(Node):
                     # attempt to correct lidar barrel detect angle
                     a -= currentAngVel * lidarLag
 
-                if elapsed_time >= 30.0 :
+                if elapsed_time >= tMax :
                     linX = 0.0
                     angZ = 0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
@@ -738,7 +756,7 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast around barrel
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif currentAngle>0 and currentAngle<self.deg2rad(angExit) :
+                elif currentAngle>0 and currentAngle<math.radians(angExit) :
                     # stop angular rotation - continue straight
                     angZ = 0.0
                     self.get_logger().info(f"barrels_callback: went around barrel 2 {state=} {elapsed_time=} {currentAngle=}")
@@ -773,13 +791,17 @@ class Roborama25ControllerNode(Node):
             elif state=="gotoB3B" :
                 # Drive toward barrel 3 using camera blob detection, stop at distance
                 linX = linX0
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
                 # attempt to correct can detect angle 
                 a -= currentAngVel * camLag
+                # offset detect angle to point toward side of can
+                a += math.radians(20.0)
 
-                timeout = 10.0
-                if elapsed_time>=timeout :
+                if elapsed_time>=tMax :
                     linX = 0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
@@ -808,6 +830,9 @@ class Roborama25ControllerNode(Node):
                 # nominal speeds to circle barrel CW
                 linX = linX0
                 angZ = -angZ0
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-135, amax=90)
                 if barrel!=None:
@@ -816,7 +841,7 @@ class Roborama25ControllerNode(Node):
                     # attempt to correct lidar barrel detect angle
                     a -= currentAngVel * lidarLag
 
-                if elapsed_time >= 30.0 :
+                if elapsed_time >= tMax :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
 
@@ -824,7 +849,7 @@ class Roborama25ControllerNode(Node):
                     # no barrel detected - coast around barrel
                     self.get_logger().info(f"barrels_callback: no barrel detected {state=} {elapsed_time=}")
 
-                elif a>self.deg2rad(-95.0) and a<self.deg2rad(-85.0) and d<0.5:
+                elif a>self.deg2rad(-100.0) and a<self.deg2rad(-80.0) and d<0.5:
                     # continue coast around barrel
                     self.get_logger().info(f"barrels_callback: drove the side of barrel 3 {state=} {elapsed_time=} {currentAngle=}")
                     next_state = "aroundB3B"
@@ -843,6 +868,9 @@ class Roborama25ControllerNode(Node):
                 angZ = -angZ0
                 # exit angle should be 180 but there is a discontinuity at 180
                 angExit = 175 # needs more overshoot space for higher speeds
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 # tighter barrel detect assume close to the side
                 barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
@@ -852,7 +880,7 @@ class Roborama25ControllerNode(Node):
                     # attempt to correct lidar barrel detect angle
                     a -= currentAngVel * lidarLag
 
-                if elapsed_time >= 30.0 :
+                if elapsed_time >= tMax :
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     linX = 0.0
                     angZ = 0.0

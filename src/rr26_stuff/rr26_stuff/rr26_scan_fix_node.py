@@ -187,8 +187,8 @@ class rr26ScanFixNode(Node):
 
         self.scan_fix_msg_publisher.publish(msg)
 
-        if angZ != 0.0:
-            self.get_logger().info(f"scan_msg_callback: {lagTsec=:.6f} {linX=:.3f} {angZ=:.3f} {scanT=:.3f} {distErr=:.3f} {angErr=:.3f} {ainc=:.6f} {amin=:.3f} {amax=:.3f} {nranges=}")
+        # if angZ != 0.0:
+        #     self.get_logger().info(f"scan_msg_callback: {lagTsec=:.6f} {linX=:.3f} {angZ=:.3f} {scanT=:.3f} {distErr=:.3f} {angErr=:.3f} {ainc=:.6f} {amin=:.3f} {amax=:.3f} {nranges=}")
 
 
 def main(args=None):
