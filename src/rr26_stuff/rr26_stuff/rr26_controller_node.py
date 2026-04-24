@@ -504,13 +504,16 @@ class Roborama25ControllerNode(Node):
 
         # STATE gotoB1A
             elif state=="gotoB1A" :
-                # Drive in 1.5ft arc towards Can 1, stop at 80 degrees
+                # Drive in arc towards Can 1, stop at about 80 degrees
                 # the camera should be able to see the can in the ranges of placement
                 linX = linX0
-                targetAngle = self.deg2rad(75.0)
-                timeout = 20.0
+                targetAngle = math.radians(75.0)
+                dArc = 1.0
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
-                if elapsed_time>=timeout :
+                if elapsed_time>=tMax :
                     linX = 0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
@@ -520,15 +523,17 @@ class Roborama25ControllerNode(Node):
                     next_state = "gotoB1B"
 
                 else :
-                    angZ = (linX * targetAngle)/(1.5*self.ft2m)
+                    angZ = (linX * targetAngle)/(dArc*self.ft2m)
 
-                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {targetAngle=} {timeout=} {linX=} {angZ=}")
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {currentAngle=} {targetAngle=} {linX=} {angZ=}")
                 
         # STATE gotoB1B
             elif state=="gotoB1B" :
                 # Drive to get close to barrel1 using camera blob detection
                 linX = linX0
-                timeout = 10.0
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
                 # attempt to correct can detect angle 
@@ -536,7 +541,7 @@ class Roborama25ControllerNode(Node):
                 # offset detect angle to point toward side of can
                 a += math.radians(-20.0)
 
-                if elapsed_time>=timeout :
+                if elapsed_time>=tMax :
                     linX=0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
