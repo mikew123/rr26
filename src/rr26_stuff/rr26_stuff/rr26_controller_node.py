@@ -493,10 +493,10 @@ class Roborama25ControllerNode(Node):
             
         # STATE start
             elif state=="start" :
-                # Drive 3ft to 1ft past start line
+                # Drive past start line
                 linX = linX0
                 angZ = 0.0
-                dist = 3.0*self.feetToMeter
+                dist = 2.5*self.ft2m
                 timeout = dist/linX
 
                 if elapsed_time>=timeout:
@@ -504,13 +504,13 @@ class Roborama25ControllerNode(Node):
 
         # STATE gotoB1A
             elif state=="gotoB1A" :
-                # Drive in arc towards Can 1, stop at about 80 degrees
+                # Drive in arc towards Can 1, stop when pointed towards barrel1
                 # the camera should be able to see the can in the ranges of placement
                 linX = linX0
-                targetAngle = math.radians(75.0)
-                dArc = 1.0
+                targetAngle = math.radians(65.0)
+                dArc = 0.75 # arc radius in ft
                 # set timeout
-                dMax = 2.0
+                dMax = 2.0 # travel meters before timeout
                 tMax = dMax/linX
 
                 if elapsed_time>=tMax :
@@ -922,8 +922,19 @@ class Roborama25ControllerNode(Node):
             elif state=="gotoHome" :
                 # Go to the begin point map x=0, y=0, heading 180 deg
                 linX = linX0
-                if currentAngle > 0 :
+                # set timeout
+                dMax = 2.0
+                tMax = dMax/linX
+
+                if elapsed_time >= tMax :
+                    self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
+                    linX = 0.0
+                    angZ = 0.0
+                    next_state = "end"
+
+                elif currentAngle > 0 :
                     aDiff = (self.deg2rad(180) - currentAngle)
+                    
                 else :
                     aDiff = (self.deg2rad(-180) - currentAngle)
 
