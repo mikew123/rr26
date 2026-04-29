@@ -434,7 +434,7 @@ class Roborama25ControllerNode(Node):
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float    = 0.30
+        linX0: float    = 0.50
         angZ0: float    = 3*linX0
         angScale: float = 10*linX0
 
@@ -446,7 +446,11 @@ class Roborama25ControllerNode(Node):
         if self.gotoBarrelRace==True and self.gotoBarrelRace_last==False :
             self.barrelRaceActive = True
 
-
+        a = 0.0
+        d = 0.0
+        aa = 0.0 
+        dd = 0.0       
+        
         stateChange = False
 
         if self.enable_br_states==True :
@@ -571,7 +575,7 @@ class Roborama25ControllerNode(Node):
                     self.get_logger().info(f"barrels_callback: barrel 1 is close {state=} {elapsed_time=} {a=} {d=}")
                     next_state = "aroundB1A"
 
-                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {tf_OK=} {a=} {d=} {linX=} {angZ=}")
+                self.get_logger().info(f"barrels_callback: {state=} {elapsed_time=} {tf_OK=} {a=} {d=} {aa=} {dd=} {linX=} {angZ=}")
 
         # STATE aroundB1A
             elif state=="aroundB1A" :
