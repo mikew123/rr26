@@ -541,10 +541,20 @@ class Roborama25ControllerNode(Node):
                 # offset detect angle to point toward side of can
                 a += math.radians(-20.0)
 
+                # Barrel detection using Lidar
+                barrel = self.lidarDist2can(barrels, dmax=1.0, amin=-50, amax=50)
+
                 if elapsed_time>=tMax :
                     linX=0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
+
+                elif barrel!=None :
+                    aa = barrel.angle
+                    dd = barrel.distance
+                    if dd < 0.75 :
+                        self.get_logger().info(f"barrels_callback: Lidar detected barrel 1 is close {state=} {elapsed_time=} {aa=} {dd=}")
+                        next_state = "aroundB1A"
 
                 elif tf_OK == False :
                     self.get_logger().info(f"barrels_callback: barrel 1 not detected with cam blob, ignore {state=} {elapsed_time=}")
@@ -673,10 +683,20 @@ class Roborama25ControllerNode(Node):
                 # offset detect angle to point toward side of can
                 a += math.radians(20.0)
 
+                # Barrel detection using Lidar
+                barrel = self.lidarDist2can(barrels, dmax=1.0, amin=-50, amax=50)
+
                 if elapsed_time>=tMax :
                     linX = 0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
+
+                elif barrel!=None :
+                    aa = barrel.angle
+                    dd = barrel.distance
+                    if dd < 0.75 :
+                        self.get_logger().info(f"barrels_callback: Lidar detected barrel 1 is close {state=} {elapsed_time=} {aa=} {dd=}")
+                        next_state = "aroundB2A"
 
                 elif d > 2.0 :
                     self.get_logger().info(f"barrels_callback: barrel 2 dist too far, ignore {state=} {elapsed_time=}")
@@ -806,10 +826,20 @@ class Roborama25ControllerNode(Node):
                 # offset detect angle to point toward side of can
                 a += math.radians(20.0)
 
+                # Barrel detection using Lidar
+                barrel = self.lidarDist2can(barrels, dmax=1.0, amin=-50, amax=50)
+
                 if elapsed_time>=tMax :
                     linX = 0.0
                     self.get_logger().info(f"barrels_callback: timeout {state=} {elapsed_time=}")
                     next_state = "end"
+
+                elif barrel!=None :
+                    aa = barrel.angle
+                    dd = barrel.distance
+                    if dd < 0.75 :
+                        self.get_logger().info(f"barrels_callback: Lidar detected barrel 1 is close {state=} {elapsed_time=} {aa=} {dd=}")
+                        next_state = "aroundB3A"
 
                 elif d > 2.0 :
                     # coast
