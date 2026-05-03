@@ -435,7 +435,7 @@ class Roborama25ControllerNode(Node):
         self.robot_json_data_publish(cmd_str)
 
         # blocking wait for the expected drive movement time
-        sec*=1.1
+        sec*=1.1 # wait a bit more than drive time to ensure finished
         self.get_logger().info(f"driveDirect: waiting {sec=:.3f}")
         time.sleep(sec)
 
@@ -610,6 +610,8 @@ class Roborama25ControllerNode(Node):
     def runQTrip(self) :
         """
         button B
+        Control wheels directly not through /cmd_vel
+        Manage acceleration limits
         """
         self.get_logger().info(f"runQTrip: {self.nav_arena=} started (button B)")
         
@@ -619,7 +621,7 @@ class Roborama25ControllerNode(Node):
 #        self.send_set_param_request(self.global_costmap_set_param_svc, 'obstacle_layer.enabled', False)
                 
         # enable acceleration limit for quick trip
-        cmd_json = {"wheels": {"accel": 1.0}}
+        cmd_json = {"wheels": {"accel": 2.0}}
         cmd_str = json.dumps(cmd_json)+"\0"
         self.robot_json_data_publish(cmd_str)
         
@@ -627,7 +629,7 @@ class Roborama25ControllerNode(Node):
         # status = self.gotoXY(8*self.feetToMeter,0, 30)
         d = self.lengthQuickTrip[self.nav_arena]
 
-        vx = 0.50 #0.75 #0.25
+        vx = 0.75 #0.75 #0.25
         self.driveDirectWiggle( d, vx)
         time.sleep(0.1)
         self.driveDirectWiggle(-d, vx)
