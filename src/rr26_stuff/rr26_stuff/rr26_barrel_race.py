@@ -21,7 +21,7 @@ class BarrelRace() :
         # get links to functions in ROS2 rr26_controller_node
         self.get_logger = self.ctrl.get_logger
         self.getAngleDist2CanBlob = self.ctrl.getAngleDist2CanBlob
-        # self.lidarDist2can = self.ctrl.lidarDist2can
+        # self.lidarDistToBarrel = self.ctrl.lidarDistToBarrel
         self.cmd_vel_publisher = self.ctrl.cmd_vel_publisher
         self.get_clock = self.ctrl.get_clock
         self.getCurrentPose = self.ctrl.getCurrentPose
@@ -36,19 +36,14 @@ class BarrelRace() :
     brCnt = 0
     currentAngVel = 0.0
     currentLinVel = 0.0
-
-    def ft2m(self, ft: float) -> float:
-        return ft * 0.3048
     
     def runBarrelRace(self) :
         """
-        Button Y
+        The barrel race is started by calling this function
+        This function is blocking and returns when the barrel race is finished
         """
         
         self.get_logger().info(f"barrel_race.runBarrelRace: started (button Y)")
-
-        # self.createBRMap()
-        # self.send_set_param_request(self.amcl_set_param_svc, 'tf_broadcast', False)
 
         # Enables the Barrel Race can statemachine running in scan (Lidar) callback
         self.enable_br_states = True
@@ -60,9 +55,12 @@ class BarrelRace() :
         self.get_logger().info(f"barrel_race.runBarrelRace: Barrel Race state machine finished")
 
 
-    def lidarDist2can(self, barrels:Barrels, dmax, amin, amax) -> Barrel :
+    def ft2m(self, ft: float) -> float:
+        return ft * 0.3048
+
+    def lidarDistToBarrel(self, barrels:Barrels, dmax, amin, amax) -> Barrel :
         """
-        get distance and angle to the can using the lidar can detection
+        get distance and angle to the barrel using the lidar can detection
         relative to the robot center
         Select the barrel that meets the distance and angle requirements
         return angle, dist to barrel relative to center of robot
@@ -83,7 +81,7 @@ class BarrelRace() :
                     barrelDetected = barrel
                     break
         
-        # self.get_logger().info(f"lidarDist2can: {barrels=} {barrelDetected=}")
+        # self.get_logger().info(f"lidarDistToBarrel: {barrels=} {barrelDetected=}")
 
         return barrelDetected
     
@@ -113,7 +111,7 @@ class BarrelRace() :
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float    = 0.50
+        linX0: float    = 0.30
         angZ0: float    = 3*linX0
         angScale: float = 10*linX0
 
@@ -225,7 +223,7 @@ class BarrelRace() :
                 a += math.radians(-20.0)
 
                 # Barrel detection using Lidar
-                barrel = self.lidarDist2can(barrels, dmax=1.0, amin=-50, amax=50)
+                barrel = self.lidarDistToBarrel(barrels, dmax=1.0, amin=-50, amax=50)
 
                 if elapsed_time>=tMax :
                     linX=0.0
@@ -267,7 +265,7 @@ class BarrelRace() :
                 tMax = dMax/linX
 
                 # Qualify barrels loosely
-                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-90, amax=135)
+                barrel = self.lidarDistToBarrel(barrels, dmax=1.5, amin=-90, amax=135)
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
@@ -307,7 +305,7 @@ class BarrelRace() :
                 d = 0.0
 
                 # Qualify barrel detection tightly while driving around the barrel
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=45, amax=135)
+                barrel = self.lidarDistToBarrel(barrels, dmax=0.6, amin=45, amax=135)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
@@ -367,7 +365,7 @@ class BarrelRace() :
                 a += math.radians(20.0)
 
                 # Barrel detection using Lidar
-                barrel = self.lidarDist2can(barrels, dmax=1.0, amin=-50, amax=50)
+                barrel = self.lidarDistToBarrel(barrels, dmax=1.0, amin=-50, amax=50)
 
                 if elapsed_time>=tMax :
                     linX = 0.0
@@ -407,7 +405,7 @@ class BarrelRace() :
                 dMax = 2.0
                 tMax = dMax/linX
 
-                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-135, amax=90)
+                barrel = self.lidarDistToBarrel(barrels, dmax=1.5, amin=-135, amax=90)
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
@@ -447,7 +445,7 @@ class BarrelRace() :
                 tMax = dMax/linX
 
                 # tighter barrel detect assume close to the side
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
+                barrel = self.lidarDistToBarrel(barrels, dmax=0.6, amin=-135, amax=-45)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance
@@ -510,7 +508,7 @@ class BarrelRace() :
                 a += math.radians(20.0)
 
                 # Barrel detection using Lidar
-                barrel = self.lidarDist2can(barrels, dmax=1.0, amin=-50, amax=50)
+                barrel = self.lidarDistToBarrel(barrels, dmax=1.0, amin=-50, amax=50)
 
                 if elapsed_time>=tMax :
                     linX = 0.0
@@ -552,7 +550,7 @@ class BarrelRace() :
                 dMax = 2.0
                 tMax = dMax/linX
 
-                barrel = self.lidarDist2can(barrels, dmax=1.5, amin=-135, amax=90)
+                barrel = self.lidarDistToBarrel(barrels, dmax=1.5, amin=-135, amax=90)
                 if barrel!=None:
                     a = barrel.angle
                     d = barrel.distance
@@ -591,7 +589,7 @@ class BarrelRace() :
                 tMax = dMax/linX
 
                 # tighter barrel detect assume close to the side
-                barrel = self.lidarDist2can(barrels, dmax=0.6, amin=-135, amax=-45)
+                barrel = self.lidarDistToBarrel(barrels, dmax=0.6, amin=-135, amax=-45)
                 if barrel!=None :
                     a = barrel.angle
                     d = barrel.distance

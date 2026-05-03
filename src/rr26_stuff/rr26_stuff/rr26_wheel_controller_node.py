@@ -342,11 +342,17 @@ class Roborama25WheelControllerNode(Node):
                 #self.get_logger().info(f"robot_json_callback: {packet}")
                 
             if "wheels" in packet :
+                wheel_cmd = packet["wheels"]
+
+                if "accel" in wheel_cmd :
+                    accel = wheel_cmd["accel"]
+                    drvStr = f"AR {accel:.3f}\n".encode()
+                    self.wheel_serial_port.write(drvStr)
+
                 left=0.0
                 right=0.0
                 angular=0.0
                 sec=0.0
-                wheel_cmd = packet["wheels"]
                 if "left" in wheel_cmd :
                     left = wheel_cmd["left"]
                 if "right" in wheel_cmd :
