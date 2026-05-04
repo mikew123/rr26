@@ -109,7 +109,7 @@ class Roborama25ControllerNode(Node):
     d = 9.0 # dist between square corner markers
     t = 1.5 # distance from actual corner of square, center of 3ft clear zone
     size4corner:dict = {
-        "home" : 1.0, # meters
+        "home" : 6*ft2m, # actual robot turn points outside 4 corners
         "dprg" : (d+(2*t))*ft2m
     }
     
