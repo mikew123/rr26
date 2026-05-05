@@ -143,8 +143,8 @@ class rr26ScanFixNode(Node):
         #       this could improve motion correction
         if self.linCurve == [] :
             for i in range(0, nranges) :
-                line = 1.0 - float(i)/nranges # 1 to 0
-                dadj = line * math.cos(line*2*math.pi)
+                line = float(i)/nranges # 0 to 1
+                dadj = math.fabs(line * math.cos(line*2*math.pi))
                 self.linCurve.append(dadj)
             # self.get_logger().info(f"scan_msg_callback: {self.linCurve=}")
         linCurve:list = self.linCurve
@@ -161,16 +161,16 @@ class rr26ScanFixNode(Node):
         # linear distance
         # distance error caused by movement for 1 scan time
         distErr = linX * scanT
-        # estiamted distance error per range
-        distErrdt = (linAccX * (scanT/nranges)) * scanT
+        # estimated distance error per range
+        # distErrdt = (linAccX * (scanT/nranges)) * scanT
         for i in range(0, nranges) :
             # adjust linear velocity over time for better motion compensation
-            distErr += distErrdt
-            ranges[i] += distErr * (1-linCurve[i]) # reversed compensation curve
+            # distErr += distErrdt
+            ranges[i] += distErr * linCurve[i]
 
         # Update scan data in message
         
-        # set fixed scan timestamp to end of scan
+        # set fixed scan timestamp to the end of scan
         ns: int = msg.header.stamp.nanosec + int(1e9 * scanT)
         sec: int = msg.header.stamp.sec
         if ns >= 1000000000:
