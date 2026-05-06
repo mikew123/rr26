@@ -1,21 +1,32 @@
 #!/usr/bin/env python3
 
+from copy import deepcopy
+
 import rclpy
 import math
 
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 
-from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import Range
+
 from nav_msgs.msg import Odometry
 
-from builtin_interfaces.msg import Time, Duration
+from builtin_interfaces.msg import Time
 
 class rr26ScanFixNode(Node):
     """
-    Fix the rotational Lidar scan related distortions 
+    Fix the rotational Lidar scan related distortions and /scan_fix is published
+    The front range is determined and /front_range is published
+    The width of a can is removed to publish /scan_nocan for obstical detection
+    to not consider front can an obstacle
     """
+
+    # dimensions of soda can
+    canHeight   = 0.125
+    canDiameter = 0.065
+    canRadius   = canDiameter/2
 
     def __init__(self):
         super().__init__('rr26_scan_fix_node')
@@ -24,7 +35,10 @@ class rr26ScanFixNode(Node):
                                                              self.wheel_odom_callback, 10)
         self.scan_msg_subscriber = self.create_subscription(LaserScan, 'scan', 
                                                             self.scan_msg_callback, 10)
+        
         self.scan_fix_msg_publisher = self.create_publisher(LaserScan, 'scan_fix', 10)
+        self.scan_nocan_msg_publisher = self.create_publisher(LaserScan, 'scan_nocan', 10)
+        self.front_range_msg_publisher = self.create_publisher(Range, 'front_range', 10)
 
         self.timer = self.create_timer(1.0, self.timer_callback)
 
@@ -32,6 +46,8 @@ class rr26ScanFixNode(Node):
 
     def cleanup(self):
         self.scan_fix_msg_publisher.destroy()
+        self.scan_nocan_msg_publisher.destroy()
+        self.front_range_msg_publisher.destroy()
 
     # robot velocities used for motion compensation of Lidar scan data
     odomPause: bool = False
@@ -61,7 +77,7 @@ class rr26ScanFixNode(Node):
     def wheel_odom_callback(self, msg: Odometry) -> None:
         """
         Save wheel odometry data in global variables for 
-        Lidar motion compensation
+        Used for Lidar motion compensation
         The wheel odom rate is higher than the Lidar scan rate
         """
         self.timer.reset()
@@ -90,15 +106,16 @@ class rr26ScanFixNode(Node):
             else:
                 self.linAccX = 0.0
                 self.angAccZ = 0.0
-    
-    def scan_msg_callback(self, msg: LaserScan) -> None:
+
+
+    def scan_fix(self, msg: LaserScan) -> LaserScan :
         """
-        The Lidar device which created the scan data is a RPLidar C1
         Processes the raw Lidar scan data to fix the rotational
         and directional distortions caused by robot movement while 
         the Lidar is scanning (rotating)
         A corrected /scan_fix message is published
         """
+
 
         # stop odom data from being updated while accessing it
         self.odomPause = True
@@ -123,7 +140,7 @@ class rr26ScanFixNode(Node):
         scanT = msg.scan_time
 
         scanTstamp: Time = msg.header.stamp
-        scanTsec: float = scanTstamp.sec + 1e-9 * scanTstamp.nanosec  # Start scan time
+        scanTsec: float = scanTstamp.sec + 1e-9 * scanTstamp.nanosec  # Scan rotation time
         scanTsec_end: float = scanTsec + scanT  # End scan time
 
         # Extrapolate the odom velocity
@@ -189,6 +206,128 @@ class rr26ScanFixNode(Node):
 
         # if angZ != 0.0:
         #     self.get_logger().info(f"scan_msg_callback: {lagTsec=:.6f} {linX=:.3f} {angZ=:.3f} {scanT=:.3f} {distErr=:.3f} {angErr=:.3f} {ainc=:.6f} {amin=:.3f} {amax=:.3f} {nranges=}")
+
+        return(deepcopy(msg))
+
+    def front_range(self, scan_fix:LaserScan) -> float :
+        """
+        Publish /front_range using the Lidar scan data
+        The detected range distance is the minimum of the 
+        scan distances in the field of view around 0 degrees
+        which is in the front of the robot
+        The range distance is relative to the Lidar scan sensor location
+        """
+        
+        # the range distance is relative to the Lidar scanner
+
+        # the fov of the range is 15 degrees
+        range_fov:float = math.radians(15.0)
+        range_min:float = 0.100 # 100 mm
+        range_max:float = 2.000 # 2 meters
+
+        # extract scan parameters
+        rmin = scan_fix.range_min
+        amin = scan_fix.angle_min
+        amax = scan_fix.angle_max
+        ainc = scan_fix.angle_increment
+        ranges = scan_fix.ranges
+        nranges = len(ranges)
+        header = scan_fix.header
+
+        front_idx = int(nranges/2)
+        range = ranges[front_idx]
+
+        # determine the range of an object in the field of view
+        # Select the 3 minimum distances and take the middle value
+        mid = nranges/2
+        fovIdxCnt = int(range_fov/ainc)
+        fovMinIdx = int(mid - fovIdxCnt/2)
+        fovMaxIdx = int(mid + fovIdxCnt/2)
+        fovRanges = ranges[fovMinIdx:fovMaxIdx]
+
+        # select 3 minimums
+        fovMinRanges = [math.inf, math.inf, math.inf]
+        for i in [0,1,2] :
+            min = math.inf
+            minIdx = None
+            idx = 0
+            for r in fovRanges :
+                if r < min :
+                    min = r
+                    minIdx = idx
+                idx +=1
+            if minIdx != None :
+                fovMinRanges[i] = min
+                fovRanges[minIdx] = math.inf
+
+        # select the middle min range to filter out extremes (brute force)
+        range = None
+        if fovMinRanges[0] < fovMinRanges[1] :
+            if fovMinRanges[1] < fovMinRanges[2] :
+                range = fovMinRanges[1]
+            else :
+                range = fovMinRanges[2]
+        elif fovMinRanges[1] < fovMinRanges[2] :
+            if fovMinRanges[0] < fovMinRanges[2] :
+                range = fovMinRanges[0]
+            else :
+                range = fovMinRanges[2]
+        else :
+            if fovMinRanges[0] < fovMinRanges[1] :
+                range = fovMinRanges[0]
+            else :
+                range = fovMinRanges[1]
+
+        self.get_logger().info(f"{range=} {fovMinRanges=} {fovRanges=}")
+        front_range = Range()
+        front_range.header= header
+        front_range.range = range
+        front_range.field_of_view = range_fov
+        front_range.min_range = range_min
+        front_range.max_range = range_max
+
+        # self.front_range_msg_publisher.publish(front_range)
+        
+        return(deepcopy(range))
+
+    def scan_nocan(self, scan_fix:LaserScan, range:float) -> None :
+        """
+        Publish /scan_nocan by removing any can in front of the robot
+        using the motion compensated scan data and the detected range distance
+        If a can is qulified at the given distance then the scan data is removed
+        for the width of the can
+        The scan data is removed by setting the range value to Inf
+        """
+
+        # extract scan parameters
+        rmin = scan_fix.range_min
+        amin = scan_fix.angle_min
+        amax = scan_fix.angle_max
+        ainc = scan_fix.angle_increment
+        ranges = scan_fix.ranges
+        nranges = len(ranges)
+
+        # alter the motion compensated Lidar scan data
+        scan_nocan:LaserScan = LaserScan() #self.scan_fix
+
+        self.scan_nocan_msg_publisher.publish(scan_nocan)
+
+    def scan_msg_callback(self, msg:LaserScan) -> None:
+        """
+        The Lidar device which created the scan data is a RPLidar C1
+        Publishes motion compensated scan data
+        Publishes a scan message with a front can removed
+        Publishes a range message distance to what is directly in front
+        """
+
+        # motion compensate the scan data and return the fixed scan message
+        scan_fix:LaserScan = self.scan_fix(msg)
+
+        # determine the range distance of what is directly in front
+        front_range:float = self.front_range(scan_fix)
+
+        # remove the scan data for a can in front of the robot
+        self.scan_nocan(scan_fix, front_range)
 
 
 def main(args=None):

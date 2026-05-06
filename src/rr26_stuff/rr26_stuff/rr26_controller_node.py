@@ -252,6 +252,8 @@ class Roborama25ControllerNode(Node):
                                                                 10, callback_group=self.cb_group_re)
         self.barrels_subscription = self.create_subscription(Barrels, '/barrels', self.barrels_callback, 
                                                                 10, callback_group=self.cb_group_re)
+        self.front_range_subscription = self.create_subscription(Range, '/front_range', self.front_range_callback, 
+                                                                10, callback_group=self.cb_group_re)
 
         self.get_logger().info(f"on_configure: waitUntilNav2Active before starting configuration")
         self.nav.waitUntilNav2Active()
@@ -1008,7 +1010,7 @@ class Roborama25ControllerNode(Node):
         """
         canDet:bool = False
 
-        # dist = self.tofL4_rng
+        # dist = self.front_range
         Lnum = 0
         Rnum = 0
         distCanDet = 0.125
@@ -1036,7 +1038,7 @@ class Roborama25ControllerNode(Node):
 ################################### 6CAN stuff ##########################    
 
     
-    # tofL4_rng = None
+    # front_range = None
     tofL5L_pcd = None
     tofL5R_pcd = None
     changed_6can_state = False
@@ -1048,7 +1050,7 @@ class Roborama25ControllerNode(Node):
     
     def run_6can_states(self) :
         """
-        Executes every tofL4_rng_callback
+        Executes every front_range_callback
         Runs the upper level states for six can
         >findCan
         >gotoCanLocation
@@ -1191,7 +1193,7 @@ class Roborama25ControllerNode(Node):
             return next_state
         
         
-        # dist = self.tofL4_rng
+        # dist = self.front_range
 
         # distMin = 1000.0
         # distMinL = distMin
@@ -1471,15 +1473,17 @@ class Roborama25ControllerNode(Node):
         self.enable_6can_states = False
         return next_state
 
-    # # Sensors used to run 6 CAN
-    # def tofL4_rng_callback(self, msg: Range) :
-    #     """
-    #     Front range sensor message
-    #     This sensor is used for the final can approach after T5 sensors quit detecting
-    #     This call back also runs the 6 can state machine
-    #     """
-    #     self.tofL4_rng = msg.range
-    #     self.run_6can_states()
+    # Sensors used to run 6 CAN
+    def front_range_callback(self, msg: Range) :
+        """
+        Front range sensor message
+        This sensor is used for the final can approach after T5 sensors quit detecting
+        This call back also runs the 6 can state machine
+        The range is determined using the Lidar scan data
+        The range message also triggers the 6 can state machine (scan is ~10Hz)
+        """
+        self.front_range = msg.range
+        self.run_6can_states()
         
     def tofL5L_pcd_callback(self, msg: PointCloud2) :
         """
