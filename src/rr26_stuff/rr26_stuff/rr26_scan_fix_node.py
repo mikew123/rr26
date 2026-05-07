@@ -327,13 +327,11 @@ class rr26ScanFixNode(Node):
         frontRangeFov:float = front_range.field_of_view
         canRange:float      = front_range.range
 
+        # set the can distance parameters about the range distance
         canRangeMin:float   = canRange-self.canRadius
         canRangeMax:float   = canRange+self.canRadius
         
         # extract scan parameters
-        rmin = scan_fix.range_min
-        amin = scan_fix.angle_min
-        amax = scan_fix.angle_max
         ainc = scan_fix.angle_increment
         ranges = scan_fix.ranges
         nranges = len(ranges)
@@ -356,6 +354,7 @@ class rr26ScanFixNode(Node):
         canEnd = None
         canWid = None
 
+        # find sequence of scan data within rage value +- the can radius
         for i in range(scanRangeMin, scanRangeMax+1) :
             d = ranges[i]
             if canBeg==None :
@@ -369,11 +368,15 @@ class rr26ScanFixNode(Node):
         if canBeg!=None and canEnd!=None :
             canWid = canEnd - canBeg +1
         
+        # validate can width
+        if abs(canWid-canScanPoints)>(canScanPoints/10 +4) : 
+            canWid = None
+
         # alter the motion compensated Lidar scan data to remove the can in FOV
         scan_nocan:LaserScan = deepcopy(scan_fix)
 
         if canWid!=None :
-            for i in range(canBeg, canEnd+1) :
+            for i in range(canBeg-4, canEnd+5) :
                 scan_nocan.ranges[i] = math.inf
 
         self.scan_nocan_msg_publisher.publish(scan_nocan)
