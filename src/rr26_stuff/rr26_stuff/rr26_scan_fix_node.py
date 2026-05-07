@@ -108,6 +108,24 @@ class rr26ScanFixNode(Node):
                 self.angAccZ = 0.0
 
 
+    def scan_msg_callback(self, msg:LaserScan) -> None:
+        """
+        The Lidar device which created the scan data is a RPLidar C1
+        Publishes motion compensated scan data
+        Publishes a scan message with a front can removed
+        Publishes a range message distance to what is directly in front
+        """
+
+        # motion compensate the scan data and return the fixed scan message
+        scan_fix:LaserScan = self.scan_fix(msg)
+
+        # determine the range distance of what is directly in front
+        front_range:float = self.front_range(scan_fix)
+
+        # remove the scan data for a can in front of the robot
+        self.scan_nocan(scan_fix, front_range)
+
+
     def scan_fix(self, msg: LaserScan) -> LaserScan :
         """
         Processes the raw Lidar scan data to fix the rotational
@@ -209,19 +227,20 @@ class rr26ScanFixNode(Node):
 
         return(deepcopy(msg))
 
-    def front_range(self, scan_fix:LaserScan) -> float :
+    def front_range(self, scan_fix:LaserScan) -> Range :
         """
         Publish /front_range using the Lidar scan data
         The detected range distance is the minimum of the 
         scan distances in the field of view around 0 degrees
         which is in the front of the robot
         The range distance is relative to the Lidar scan sensor location
+        Returns the detected range, Inf=invalid
         """
         
         # the range distance is relative to the Lidar scanner
 
-        # the fov of the range is 15 degrees
-        range_fov:float = math.radians(15.0)
+        # the fov of the range is similar to standard OpenMV lens
+        range_fov:float = math.radians(70.0)
         range_min:float = 0.100 # 100 mm
         range_max:float = 2.000 # 2 meters
 
@@ -278,7 +297,9 @@ class rr26ScanFixNode(Node):
             else :
                 range = fovMinRanges[1]
 
-        self.get_logger().info(f"{range=} {fovMinRanges=} {fovRanges=}")
+        # limit range distances
+        if range>range_max or range<range_min : range = math.inf
+
         front_range = Range()
         front_range.header= header
         front_range.range = range
@@ -286,19 +307,29 @@ class rr26ScanFixNode(Node):
         front_range.min_range = range_min
         front_range.max_range = range_max
 
-        # self.front_range_msg_publisher.publish(front_range)
-        
-        return(deepcopy(range))
+        self.front_range_msg_publisher.publish(front_range)
 
-    def scan_nocan(self, scan_fix:LaserScan, range:float) -> None :
+        # self.get_logger().info(f"{range=} {fovMinRanges=} {fovRanges=}")
+
+        return(deepcopy(front_range))
+
+    def scan_nocan(self, scan_fix:LaserScan, front_range:Range) -> None :
         """
         Publish /scan_nocan by removing any can in front of the robot
         using the motion compensated scan data and the detected range distance
         If a can is qulified at the given distance then the scan data is removed
         for the width of the can
+        This is used for obstical detetction and ignores the can it is trying to get
         The scan data is removed by setting the range value to Inf
         """
 
+        # extract range parameters
+        frontRangeFov:float = front_range.field_of_view
+        canRange:float      = front_range.range
+
+        canRangeMin:float   = canRange-self.canRadius
+        canRangeMax:float   = canRange+self.canRadius
+        
         # extract scan parameters
         rmin = scan_fix.range_min
         amin = scan_fix.angle_min
@@ -307,27 +338,47 @@ class rr26ScanFixNode(Node):
         ranges = scan_fix.ranges
         nranges = len(ranges)
 
-        # alter the motion compensated Lidar scan data
-        scan_nocan:LaserScan = LaserScan() #self.scan_fix
+        # TODO? compute actual 0 deg middle for scan range ?
+        scanRangeCnt = frontRangeFov/ainc
+        scanRangeMin = int(nranges/2 - scanRangeCnt/2) -1
+        scanRangeMax = int(nranges/2 + scanRangeCnt/2) +1
+        
+        # Qualify can before invalidating some scan data so the can is not in the scan
+        # The amount of scan data invalidated is a bit more than the width of the can
+        # The closer the can the more data is invalidated
+        # Increase to ensure no can is detected
+
+        canScanAngle = 2*math.atan2(self.canRadius, canRange)
+        canScanPoints = int(canScanAngle/ainc)
+
+        # detect can begining and end points in scan range data
+        canBeg = None
+        canEnd = None
+        canWid = None
+
+        for i in range(scanRangeMin, scanRangeMax+1) :
+            d = ranges[i]
+            if canBeg==None :
+                if d!=math.inf and (d>canRangeMin and d<canRangeMax) :
+                    canBeg = i-1
+            elif canEnd==None :
+                if d!=math.inf and (d<canRangeMin or d>canRangeMax) :
+                    canEnd = i+1
+                    break
+
+        if canBeg!=None and canEnd!=None :
+            canWid = canEnd - canBeg +1
+        
+        # alter the motion compensated Lidar scan data to remove the can in FOV
+        scan_nocan:LaserScan = deepcopy(scan_fix)
+
+        if canWid!=None :
+            for i in range(canBeg, canEnd+1) :
+                scan_nocan.ranges[i] = math.inf
 
         self.scan_nocan_msg_publisher.publish(scan_nocan)
 
-    def scan_msg_callback(self, msg:LaserScan) -> None:
-        """
-        The Lidar device which created the scan data is a RPLidar C1
-        Publishes motion compensated scan data
-        Publishes a scan message with a front can removed
-        Publishes a range message distance to what is directly in front
-        """
-
-        # motion compensate the scan data and return the fixed scan message
-        scan_fix:LaserScan = self.scan_fix(msg)
-
-        # determine the range distance of what is directly in front
-        front_range:float = self.front_range(scan_fix)
-
-        # remove the scan data for a can in front of the robot
-        self.scan_nocan(scan_fix, front_range)
+        self.get_logger().info(f"{canRange=:0.3f} {canRangeMin=} {canRangeMax=} {scanRangeMin=} {scanRangeMax=} {canBeg=} {canEnd=} {canWid=} {canScanAngle=:0.3f} {canScanPoints=} {scanRangeMin=} {scanRangeMax=}")
 
 
 def main(args=None):
