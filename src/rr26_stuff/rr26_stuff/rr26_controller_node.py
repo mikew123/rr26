@@ -114,7 +114,7 @@ class Roborama25ControllerNode(Node):
     }
     
     # dimensions in units of map resolution
-    home_can6Width:int = int((9.0 * ft2m)/mapResolution) # 6-can walls
+    home_can6Width:int = int((8.0 * ft2m)/mapResolution) # 6-can walls
     home_can6Height:int = int((7.0 * ft2m)/mapResolution)
     home_can6GoalArea:int = int((3.0 * ft2m)/mapResolution) # goal area outside walls
     home_can6GoalOpening:int = int((3.0 * ft2m)/mapResolution) # width of goal opening
@@ -122,7 +122,7 @@ class Roborama25ControllerNode(Node):
     home_mapHeight:int = home_can6Height
     # dimensions in units of meters
     home_startWpXoffM:float = (8/12.0*ft2m) # offset from back wall, inches to meters
-    home_can6WidthM:float = 9.0 * ft2m # 6-can walls from end to end
+    home_can6WidthM:float = 8.0 * ft2m # 6-can walls from end to end
     home_startWpX0M:float = home_startWpXoffM # X coordinate of the start waypoint xy = (0,0)
     home_goalOpeningX0M:float =  ( # X coordinate of the goal opening goto before going to dropoff
         home_can6WidthM - home_startWpXoffM - (1.5*ft2m)) 
@@ -648,10 +648,13 @@ class Roborama25ControllerNode(Node):
         self.create6CMap()
         self.send_set_param_request(self.amcl_set_param_svc, 'tf_broadcast', True)
     
-        # Enables the 6 can statemachine running in tofL4 callback
+        # Wait for AMCL to settle
+        time.sleep(50)
+
+        # Enables the 6 can statemachine running in front_range callback
         self.enable_6can_states = True
 
-        # 6 can runs when enable state is True using the tofL4 callback
+        # 6 can runs when enable state is True using the front_range callback
         while self.enable_6can_states==True :
             time.sleep(0.1)
                  
@@ -1010,7 +1013,7 @@ class Roborama25ControllerNode(Node):
         """
         canDet:bool = False
 
-        # dist = self.front_range
+        dist = self.front_range
         Lnum = 0
         Rnum = 0
         distCanDet = 0.125
@@ -1038,7 +1041,7 @@ class Roborama25ControllerNode(Node):
 ################################### 6CAN stuff ##########################    
 
     
-    # front_range = None
+    front_range = None
     tofL5L_pcd = None
     tofL5R_pcd = None
     changed_6can_state = False
@@ -1050,7 +1053,7 @@ class Roborama25ControllerNode(Node):
     
     def run_6can_states(self) :
         """
-        Executes every front_range_callback
+        Executes every front_range_callback (Lidar based range)
         Runs the upper level states for six can
         >findCan
         >gotoCanLocation
@@ -1166,7 +1169,7 @@ class Roborama25ControllerNode(Node):
         dist = self.gotoCanTF(20)
         
         if dist > 0 :
-            self.get_logger().info(f"run_gotoCanLocation: Robot is close to the can, tofL4 range {dist=}")
+            self.get_logger().info(f"run_gotoCanLocation: Robot is close to the can, front_range range {dist=}")
             next_state = "approachCan"
         else :
             self.get_logger().info(f"run_gotoCanLocation: Robot failed to get close to the can")
@@ -1193,11 +1196,11 @@ class Roborama25ControllerNode(Node):
             return next_state
         
         
-        # dist = self.front_range
+        dist = self.front_range
 
-        # distMin = 1000.0
-        # distMinL = distMin
-        # distMinR = distMin
+        distMin = 1000.0
+        distMinL = distMin
+        distMinR = distMin
         Lnum = 0
         Rnum = 0
         distCanDet = 0.06

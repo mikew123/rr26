@@ -369,8 +369,9 @@ class rr26ScanFixNode(Node):
             canWid = canEnd - canBeg +1
         
         # validate can width
-        if abs(canWid-canScanPoints)>(canScanPoints/10 +4) : 
-            canWid = None
+        if canWid!=None :
+            if abs(canWid-canScanPoints)>(canScanPoints/10.0 +5.5) : 
+                canWid = None
 
         # alter the motion compensated Lidar scan data to remove the can in FOV
         scan_nocan:LaserScan = deepcopy(scan_fix)
@@ -381,7 +382,7 @@ class rr26ScanFixNode(Node):
 
         self.scan_nocan_msg_publisher.publish(scan_nocan)
 
-        self.get_logger().info(f"{canRange=:0.3f} {canRangeMin=} {canRangeMax=} {scanRangeMin=} {scanRangeMax=} {canBeg=} {canEnd=} {canWid=} {canScanAngle=:0.3f} {canScanPoints=} {scanRangeMin=} {scanRangeMax=}")
+        # self.get_logger().info(f"{canRange=:0.3f} {canRangeMin=} {canRangeMax=} {scanRangeMin=} {scanRangeMax=} {canBeg=} {canEnd=} {canWid=} {canScanAngle=:0.3f} {canScanPoints=} {scanRangeMin=} {scanRangeMax=}")
 
 
 def main(args=None):
