@@ -103,11 +103,11 @@ uint32_t lastTimeUs = 0;
 uint32_t diffTimeUs = 0;
 
 // Min and Max 180 movement for the 2 servos used
-#define clawUsecMinL  700 /*600 /* CLOSED */
+#define clawUsecMinL  775 /*700 /*600 /* CLOSED */
 #define clawUsecMaxL 2550 /*2300 /*2150 /* OPENED */
 
 #define clawUsecMinR  400 /*650 /*750 /* OPENED */
-#define clawUsecMaxR 2375 /*2300 /* CLOSED */
+#define clawUsecMaxR 2250 /*2375 /*2300 /* CLOSED */
 
 void InitServos() {
   myservoL.attach(PIN_SERVO_L, clawUsecMinL, clawUsecMaxL);
@@ -137,6 +137,7 @@ bool OperateClaws(int clawDesiredPct, int clawPeriodMs) {
   // Read limit switches
   bool limSwL = !digitalRead(PIN_LIMSW_L);
   bool limSwR = !digitalRead(PIN_LIMSW_R);
+// Serial.print(" SW="); Serial.println(limSwR);
 
   // Is the claw opening or closing?
   bool closing = clawCurrentPct < clawDesiredPct;
@@ -175,20 +176,19 @@ bool OperateClaws(int clawDesiredPct, int clawPeriodMs) {
     int clawUsecRangeR = clawUsecMaxR - clawUsecMinR;
     int clawUsecR = clawUsecMinR + clawUsecRangeR*clawCurrentPct/100;
 
-    // Stop closing Left claw when Right limit switch is triggered
+    // Stop closing claws when Right limit switch is triggered
     if(!(closing && limSwR)) {
       myservoL.writeMicroseconds(clawUsecL);
-//      Serial.print("Operating L "); Serial.println(closing);
-    }
-
-    // Stop closing Right claw when Leftblimit switch is triggered
-    if(!(closing && limSwL)) {
       myservoR.writeMicroseconds(clawUsecR);
-//      Serial.print("Operating R "); Serial.println(closing);
+      Serial.print("Operating Claws closing= "); Serial.print(closing);
+      Serial.print (" SW= "); Serial.print(limSwR);
+      Serial.print(" Lus= "); Serial.print(clawUsecL);
+      Serial.print(" Rus= "); Serial.print(clawUsecR);
+      Serial.println();
     }
 
-    // Left switch is broken, dont check if tripped
-    // if(closing && limSwL && limSwR) {
+
+    // if(operating && limSwR) {
     //   // Back off to reduce servo chatter
     //   clawCurrentPct-=4;
     //   clawUsecL = clawUsecMaxL - clawUsecRangeL*clawCurrentPct/100;
@@ -502,7 +502,7 @@ void loop() {
       } else if(n5 == 2) {
         // "CP" operate claws
         clawsBusy = true;
-        //Serial.print("CP -> "); Serial.print(clawPct);Serial.print(" "); Serial.println(clawPeriodMs);
+        Serial.print("CP -> "); Serial.print(clawPct);Serial.print(" "); Serial.println(clawPeriodMs);
 
       } else if(n6 == 1) {
         // "WD" wheel diameter in meters
