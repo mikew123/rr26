@@ -158,7 +158,7 @@ class rr26ScanFixNode(Node):
         scanT = msg.scan_time
 
         scanTstamp: Time = msg.header.stamp
-        scanTsec: float = scanTstamp.sec + 1e-9 * scanTstamp.nanosec  # Scan rotation time
+        scanTsec: float = scanTstamp.sec + (1e-9 * scanTstamp.nanosec) # float seconds
         scanTsec_end: float = scanTsec + scanT  # End scan time
 
         # Extrapolate the odom velocity
@@ -205,15 +205,15 @@ class rr26ScanFixNode(Node):
 
         # Update scan data in message
         
-        # set fixed scan timestamp to the end of scan
-        ns: int = msg.header.stamp.nanosec + int(1e9 * scanT)
-        sec: int = msg.header.stamp.sec
-        if ns >= 1000000000:
-            # handle nsec overflow
-            sec += 1
-            ns -= 1000000000
-        msg.header.stamp.sec = sec
-        msg.header.stamp.nanosec = ns
+        # # set fixed scan timestamp to the end of scan
+        # ns: int = msg.header.stamp.nanosec + int(1e9 * scanT)
+        # sec: int = msg.header.stamp.sec
+        # if ns >= 1000000000:
+        #     # handle nsec overflow
+        #     sec += 1
+        #     ns -= 1000000000
+        # msg.header.stamp.sec = sec
+        # msg.header.stamp.nanosec = ns
 
         msg.angle_max = amax
         msg.angle_min = amin
@@ -329,7 +329,7 @@ class rr26ScanFixNode(Node):
 
         # set the can distance parameters about the range distance
         canRangeMin:float   = canRange-self.canRadius
-        canRangeMax:float   = canRange+self.canRadius
+        canRangeMax:float   = canRange+(1.2*self.canRadius)
         
         # extract scan parameters
         ainc = scan_fix.angle_increment
@@ -370,7 +370,7 @@ class rr26ScanFixNode(Node):
         
         # validate can width
         if canWid!=None :
-            if abs(canWid-canScanPoints)>(canScanPoints/10.0 +5.5) : 
+            if abs(canWid-canScanPoints)>(canScanPoints/10.0 +7.0) : #5.0
                 canWid = None
 
         # alter the motion compensated Lidar scan data to remove the can in FOV

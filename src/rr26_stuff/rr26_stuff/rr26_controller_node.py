@@ -253,7 +253,7 @@ class Roborama25ControllerNode(Node):
         self.barrels_subscription = self.create_subscription(Barrels, '/barrels', self.barrels_callback, 
                                                                 10, callback_group=self.cb_group_re)
         self.front_range_subscription = self.create_subscription(Range, '/front_range', self.front_range_callback, 
-                                                                10, callback_group=self.cb_group_re)
+                                                                10, callback_group=self.cb_group_nav2_run)
 
         self.get_logger().info(f"on_configure: waitUntilNav2Active before starting configuration")
         self.nav.waitUntilNav2Active()
@@ -649,7 +649,7 @@ class Roborama25ControllerNode(Node):
         self.send_set_param_request(self.amcl_set_param_svc, 'tf_broadcast', True)
     
         # Wait for AMCL to settle
-        time.sleep(50)
+        time.sleep(5)
 
         # Enables the 6 can statemachine running in front_range callback
         self.enable_6can_states = True
@@ -663,7 +663,8 @@ class Roborama25ControllerNode(Node):
     def createPose(self,x,y,a) -> PoseStamped:
         pose = PoseStamped()
         pose.header.frame_id = 'map'
-        pose.header.stamp = self.nav.get_clock().now().to_msg()
+        # pose.header.stamp = self.nav.get_clock().now().to_msg()
+        pose.header.stamp = self.get_clock().now().to_msg()
         pose.pose.position.x = float(x)
         pose.pose.position.y = float(y)
         pose.pose.position.z = 0.0
@@ -883,9 +884,9 @@ class Roborama25ControllerNode(Node):
                 tf = self.tf_buffer.lookup_transform (
                     'map',
                     target_frame,
-                    #self.nav.get_clock().now().to_msg(),
+                    # self.nav.get_clock().now().to_msg(),
                     rclpy.time.Time(), # default 0
-                    timeout=rclpy.duration.Duration(seconds=0.1) #0.0)
+                    timeout=rclpy.duration.Duration(seconds=0.5)
                     )
                 tf_OK = True
 
@@ -942,10 +943,10 @@ class Roborama25ControllerNode(Node):
             tf_OK = self.tf_buffer.can_transform (
                 'map',
                 'can',
-                self.nav.get_clock().now().to_msg(),
-                #
-                # rclpy.time.Time(), # default 0 get latest
-                timeout=rclpy.duration.Duration(seconds=0.1)
+                # self.nav.get_clock().now().to_msg(),
+                # self.get_clock().now().to_msg(),
+                rclpy.time.Time(), # default 0 get latest
+                timeout=rclpy.duration.Duration(seconds=0.5)
                 )
 
         except (LookupException, ConnectivityException, ExtrapolationException) as ex:
@@ -1629,7 +1630,7 @@ class Roborama25ControllerNode(Node):
         
         t = TransformStamped()
 
-        t.header.stamp = self.get_clock().now().to_msg()
+        # t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = parent
         t.child_frame_id = child
         
