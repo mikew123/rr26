@@ -1200,8 +1200,11 @@ class Roborama25ControllerNode(Node):
         """
         next_state = "approachCan"
 
+        self.send_set_param_request(self.local_costmap_set_param_svc, 'obstacle_layer.enabled', False)
+
         if self.changed_6can_state :
             self.approachCanTimeStart = time.monotonic()
+            self.nav.clearAllCostmaps() 
 
         msg = Twist()
 
