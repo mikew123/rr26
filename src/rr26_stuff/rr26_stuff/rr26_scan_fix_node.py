@@ -205,15 +205,15 @@ class rr26ScanFixNode(Node):
 
         # Update scan data in message
         
-        # # set fixed scan timestamp to the end of scan
-        # ns: int = msg.header.stamp.nanosec + int(1e9 * scanT)
-        # sec: int = msg.header.stamp.sec
-        # if ns >= 1000000000:
-        #     # handle nsec overflow
-        #     sec += 1
-        #     ns -= 1000000000
-        # msg.header.stamp.sec = sec
-        # msg.header.stamp.nanosec = ns
+        # set fixed scan timestamp to the end of scan
+        ns: int = msg.header.stamp.nanosec + int(1e9 * scanT)
+        sec: int = msg.header.stamp.sec
+        if ns >= 1000000000:
+            # handle nsec overflow
+            sec += 1
+            ns -= 1000000000
+        msg.header.stamp.sec = sec
+        msg.header.stamp.nanosec = ns
 
         msg.angle_max = amax
         msg.angle_min = amin

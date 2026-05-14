@@ -751,7 +751,7 @@ class Roborama25ControllerNode(Node):
                     d = math.sqrt(xd*xd + yd*yd)
                     
                     # adjust the distance to the can by robot radius to stop at the cost map boundary
-                    d = d - self.robotRadius
+                    d = d - 2*self.robotRadius
                     # d-=0.2
                     x = current_pose.pose.position.x + d*math.cos(a)
                     y = current_pose.pose.position.y + d*math.sin(a)
@@ -1014,7 +1014,8 @@ class Roborama25ControllerNode(Node):
         """
         canDet:bool = False
 
-        dist = self.front_range
+        lidarDistToCatch = 0.120
+        dist = self.front_range - lidarDistToCatch
         Lnum = 0
         Rnum = 0
         distCanDet = 0.125
@@ -1082,60 +1083,69 @@ class Roborama25ControllerNode(Node):
 
         # self.get_logger().info(f"run_6can_states: {self.current_6can_state=}")
         
-        msg = Int32()
+        next_state = "error"
+
         match self.current_6can_state :
             case "findCan" : 
-                msg.data=1
-                next_state = self.run_findCan()
+                stateNum=1
+                next_state = self.run_findCan(stateNum)
             case "gotoCanLocation" :
-                msg.data=2
-                next_state = self.run_gotoCanLocation()
+                stateNum=2
+                next_state = self.run_gotoCanLocation(stateNum)
             case "approachCan" :
-                msg.data=3
-                next_state = self.run_approachCan()
+                stateNum=3
+                next_state = self.run_approachCan(stateNum)
             case "grabCan" :
-                msg.data=4
-                next_state = self.run_grabCan()
+                stateNum=4
+                next_state = self.run_grabCan(stateNum)
             case "gotoGoalOpening" :
-                msg.data=5
-                next_state = self.run_gotoGoalOpening()
+                stateNum=5
+                next_state = self.run_gotoGoalOpening(stateNum)
             case "gotoCanDrop" :
-                msg.data=6
-                next_state = self.run_gotoCanDrop()
+                stateNum=6
+                next_state = self.run_gotoCanDrop(stateNum)
             case "dropCan" :
-                msg.data=7
-                next_state = self.run_dropCan()  
+                stateNum=7
+                next_state = self.run_dropCan(stateNum)  
             case "backupFromCan" :
-                msg.data=8
-                next_state = self.run_backupFromCan()                  
+                stateNum=8
+                next_state = self.run_backupFromCan(stateNum)                  
             case "findCanAtGoal" :
-                msg.data=9
-                next_state = self.run_findCanAtGoal()                  
+                stateNum=9
+                next_state = self.run_findCanAtGoal(stateNum)                  
             case "gotoNewLocation" :
-                msg.data=10
-                next_state = self.run_gotoNewLocation()
+                stateNum=10
+                next_state = self.run_gotoNewLocation(stateNum)
             case "returnHome" :
-                msg.data=11
-                next_state = self.run_returnHome()
+                stateNum=11
+                next_state = self.run_returnHome(stateNum)
             case "done" :
-                msg.data=12
-                next_state = self.run_done()
+                stateNum=12
+                next_state = self.run_done(stateNum)
             case _ :
-                msg.data=-10
+                stateNum=-10
                 self.get_logger().info(f"run_6can_states: Unknown state {self.current_6can_state=}")
                 self.enable_6can_states = False
 
         self.next_6can_state = next_state
+
+        msg = Int32()
+        msg.data = stateNum
         self.run_state_publisher.publish(msg)
 
     
-    def run_findCan(self) ->str:
+    def run_findCan(self, stateNum:Int32) ->str:
         """
         Find a can using the camera can detection which generates a "can" TF
         or can detected using TOF sensors
         Returns instantly if a can is detected as close by
         Returns next state string
         """
+
+        msg = Int32()
+        msg.data = stateNum
+        self.run_state_publisher.publish(msg)
+
         next_state = "findCan"
 
         if self.changed_6can_state : self.findCanCnt = 0
@@ -1160,11 +1170,16 @@ class Roborama25ControllerNode(Node):
 
         return next_state
     
-    def run_gotoCanLocation(self) ->str:
+    def run_gotoCanLocation(self, stateNum:Int32) ->str:
         """
         Try to go to the location of the can 
         Returns next state string
         """
+
+        msg = Int32()
+        msg.data = stateNum
+        self.run_state_publisher.publish(msg)
+
         next_state = "gotoCanLocation"
         
         dist = self.gotoCanTF(20)
@@ -1178,7 +1193,7 @@ class Roborama25ControllerNode(Node):
             
         return next_state
     
-    def run_approachCan(self) ->str:
+    def run_approachCan(self, stateNum:Int32) ->str:
         """
         Approach the can using the TOF sensors
         Returns next state string
@@ -1196,8 +1211,8 @@ class Roborama25ControllerNode(Node):
             self.cmd_vel_publisher.publish(msg) # stop
             return next_state
         
-        
-        dist = self.front_range
+        lidarDistToCatch = 0.120
+        dist = self.front_range - lidarDistToCatch
 
         distMin = 1000.0
         distMinL = distMin
@@ -1283,7 +1298,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
     
-    def run_grabCan(self) ->str:
+    def run_grabCan(self, stateNum:Int32) ->str:
         """
         Grab the can and go to next state
         Returns next state string
@@ -1295,7 +1310,7 @@ class Roborama25ControllerNode(Node):
                                
         return next_state
 
-    def run_gotoGoalOpening(self) ->str:
+    def run_gotoGoalOpening(self, stateNum:Int32) ->str:
         """
         Go to the Goal opening location
         Returns next state string
@@ -1337,7 +1352,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
         
-    def run_gotoCanDrop(self) ->str:
+    def run_gotoCanDrop(self, stateNum:Int32) ->str:
         """
         Go to the drop location from the goal opening
         Returns next state string
@@ -1355,7 +1370,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
     
-    def run_dropCan(self) ->str:
+    def run_dropCan(self, stateNum:Int32) ->str:
         """
         Open claws to drop the can
         Returns next state string
@@ -1370,7 +1385,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
     
-    def run_backupFromCan(self) ->str:  
+    def run_backupFromCan(self, stateNum:Int32) ->str:  
         """
         Backup from the can so that it is not seen as an obstacle
         returns next state string
@@ -1390,7 +1405,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
 
-    def run_findCanAtGoal(self) ->str:  
+    def run_findCanAtGoal(self, stateNum:Int32) ->str:  
         """
         Scan over 180 degrees for a can at the goal opening
         Stops when a can is detected and goes to find the can
@@ -1419,7 +1434,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
 
-    def run_gotoNewLocation(self) ->str:  
+    def run_gotoNewLocation(self, stateNum:Int32) ->str:  
         """
         Go to a new location to search for a can
         Returns next state string
@@ -1442,7 +1457,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
 
-    def run_returnHome(self) ->str:  
+    def run_returnHome(self, stateNum:Int32) ->str:  
         """
         Goto the home location xy = (0,0)
         Point towards goal similar to starting pose
@@ -1463,7 +1478,7 @@ class Roborama25ControllerNode(Node):
         
         return next_state
 
-    def run_done(self) ->str:  
+    def run_done(self, stateNum:Int32) ->str:  
         """
         Set the state machine to done
         This is the fianl state
