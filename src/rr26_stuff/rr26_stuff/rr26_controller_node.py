@@ -717,9 +717,9 @@ class Roborama25ControllerNode(Node):
        
         return result
     
-    def gotoCanTF(self, t:float = 10) -> int:
+    def gotoCanTF(self, t:float = 10, dStop:float = 0.25) -> int:
         """
-        Go to the can TF location, but stop 0.2m short
+        Go to the can TF location, but stop short
         Rotates to point to the can before moving to it
         gets new can position every 1 second as it approaches it
         Returns distance to the can, -1 if it did not succeed
@@ -729,7 +729,7 @@ class Roborama25ControllerNode(Node):
         cnt=0
         timeStart = time.monotonic()
         timer = 0.0
-        while d>0.25 and timer<t  :
+        while d>dStop and timer<t  :
             (tf_OK, can_pose) = self.getCanPose()
             cnt+=1
             if tf_OK==False and cnt>5:
@@ -810,7 +810,7 @@ class Roborama25ControllerNode(Node):
         
         return result
     
-    def rotateRad(self,a,t):
+    def rotateRad(self,a,t=10):
         """
         Rotate a radians within time t
         Adjust rotation angle to a minimum angle -pi to pi
@@ -831,9 +831,9 @@ class Roborama25ControllerNode(Node):
 
         return result
     
-    def rotateToAngle(self,a,t) :
+    def rotateToAngle(self,a,t=10) :
         """
-        Rotate to the given absolute angle awithin time t    
+        Rotate to the given absolute angle a within time t    
         """
         
         # continue to rotate toward desired angle until time out
@@ -841,7 +841,7 @@ class Roborama25ControllerNode(Node):
         start_time = self.get_clock().now()
         elapsed_time = 0.0
         result = False
-        spinThresh = 0.05 #0.02 #0.01 # about 3 degrees
+        spinThresh = 0.1 # 6deg? 0.05 #0.02 #0.01 # about 3 degrees
         
         # Loop until the timeout is reached or the task is complete
         while rclpy.ok() and elapsed_time <t :
@@ -1182,9 +1182,10 @@ class Roborama25ControllerNode(Node):
 
         next_state = "gotoCanLocation"
         
-        dist = self.gotoCanTF(20)
+        dist = self.gotoCanTF(t=5, dStop=0.35)
         
-        if dist > 0 :
+        #TODO: needs a better way to determine invalid than d=100
+        if dist>0 and dist!=100 :
             self.get_logger().info(f"run_gotoCanLocation: Robot is close to the can, front_range range {dist=}")
             next_state = "approachCan"
         else :
@@ -1214,7 +1215,7 @@ class Roborama25ControllerNode(Node):
             self.cmd_vel_publisher.publish(msg) # stop
             return next_state
         
-        lidarDistToCatch = 0.120
+        lidarDistToCatch = 0.130
         dist = self.front_range - lidarDistToCatch
 
         distMin = 1000.0

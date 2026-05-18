@@ -240,6 +240,7 @@ class rr26ScanFixNode(Node):
         # the range distance is relative to the Lidar scanner
 
         # the fov of the range is similar to standard OpenMV lens
+        # range_fov:float = math.radians(70.0)
         range_fov:float = math.radians(70.0)
         range_min:float = 0.100 # 100 mm
         range_max:float = 2.000 # 2 meters
