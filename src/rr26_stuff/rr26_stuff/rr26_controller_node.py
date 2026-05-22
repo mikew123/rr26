@@ -756,6 +756,10 @@ class Roborama25ControllerNode(Node):
                     x = current_pose.pose.position.x + d*math.cos(a)
                     y = current_pose.pose.position.y + d*math.sin(a)
                     
+                    if d<=dStop : 
+                        self.get_logger().info(f"gotoXY: dist is < {dStop=} - abort")
+                        break # for loop
+                    
                     goto_pose = self.createPose(x,y,a)
                     self.get_logger().info(f"gotoXY: goto {x=:.3f} {y=:.3f} {d=:.3f} {a=:.3f} {timer=:.3f} {t=:.3f}")
 
@@ -854,12 +858,12 @@ class Roborama25ControllerNode(Node):
                 return False
             # convert current pose euler from quaternion, discard xx and yy
             q = current_pose.pose.orientation
-            (xx,yy,aa) = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
+            (_,_,aa) = tf_transformations.euler_from_quaternion([q.x, q.y, q.z, q.w])
             spin = float(a) - aa
             
             if abs(spin) < spinThresh:
                 self.get_logger().info(f"rotateToAngle: spin threshold reached {spin:.3f} < {spinThresh:.3f}, breaking loop")
-                break
+                break # exit while loop
             
             result = self.rotateRad(spin,t)
             
@@ -884,11 +888,12 @@ class Roborama25ControllerNode(Node):
                 tf = self.tf_buffer.lookup_transform (
                     'map',
                     target_frame,
-                    # self.nav.get_clock().now().to_msg(),
-                    rclpy.time.Time(), # default 0
+                    self.get_clock().now().to_msg(),
+                    # rclpy.time.Time(), # default 0
                     timeout=rclpy.duration.Duration(seconds=0.5)
                     )
                 tf_OK = True
+                self.get_logger().info(f"getPoseFromTF: {tf=}")
 
             except (LookupException, ConnectivityException, ExtrapolationException) as ex:
                 self.get_logger().info(f'getPoseFromTF: Could not find transform map->{target_frame}: {ex}')
@@ -911,6 +916,7 @@ class Roborama25ControllerNode(Node):
         else :
             pose = None
             
+        self.get_logger().info(f"getPoseFromTF: {tf_OK=} {pose=}")
         return (tf_OK,pose)
         
     def getCanPose(self) -> tuple:
@@ -993,10 +999,10 @@ class Roborama25ControllerNode(Node):
         findCanTime = time.monotonic()
         timer = 0
         while (not tf_OK) and (timer < waitSec) :
-            timer = time.monotonic() - findCanTime 
             self.cmd_vel_publisher.publish(msg)
             tf_OK = self.closeCanDet()
             if not tf_OK : tf_OK = self.getCanTFOK()
+            timer = time.monotonic() - findCanTime 
             self.get_logger().info(f"rotateCanDet: waiting {timer=:.3f} {tf_OK=} {a=:.3f} {va=:.3f} {waitSec=:.3f}")
 
         # stop rotation after can is detected or time out
@@ -1014,8 +1020,8 @@ class Roborama25ControllerNode(Node):
         """
         canDet:bool = False
 
-        lidarDistToCatch = 0.120
-        dist = self.front_range - lidarDistToCatch
+        lidarDistToFront = 0.120
+        dist = self.front_range - lidarDistToFront
         Lnum = 0
         Rnum = 0
         distCanDet = 0.125
@@ -1215,8 +1221,8 @@ class Roborama25ControllerNode(Node):
             self.cmd_vel_publisher.publish(msg) # stop
             return next_state
         
-        lidarDistToCatch = 0.130
-        dist = self.front_range - lidarDistToCatch
+        lidarDistToFront = 0.130
+        dist = self.front_range - lidarDistToFront
 
         distMin = 1000.0
         distMinL = distMin
@@ -1236,6 +1242,22 @@ class Roborama25ControllerNode(Node):
         for d in self.tofL5R_pcd :
             if d<(distMin+0.07) : Rnum += 1
 
+        # get num TOF pixel for a can at distance    
+        pixTheta = math.radians(90.0/16)
+        canPixNumL = 0
+        canPixNumR = 0
+        canThetaL = 2*math.atan2(self.canRadius,distMinL) 
+        canPixNumL = int(canThetaL/pixTheta)
+        r = distMinR/self.canRadius
+        canThetaR = 2*math.atan2(self.canRadius,distMinR) 
+        canPixNumR = canThetaR/pixTheta
+
+        if (Lnum > (1.5*canPixNumL)) or (Rnum > (1.5*canPixNumR)) or ((dist > (2*distCanDet)) and (Lnum < (0.5*canPixNumL)) and (Rnum < (0.5*canPixNumR))) :
+            self.get_logger().info(f"run_approachCan: close object is not a can  {dist=:.3f} {distMin=:.3f} {distMinL=:.3f} {distMinR=:.3f} {Lnum=} {Rnum=} {canPixNumL=} {canPixNumR=}")
+            # next_state = "findCan"
+            # return next_state
+
+        # Test if approaching a wall - abort is true
         if (Lnum>l4NumMax or Rnum>l4NumMax) and (distMin<distWallDet) and (dist>(distMin+0.05)):
             self.get_logger().info(f"run_approachCan: seems like I am approaching a wall - abort {dist=:.3f} {distMin=:.3f} {distMinL=:.3f} {distMinR=:.3f} {Lnum=} {Rnum=}")
             #Back up a bit
@@ -1243,7 +1265,7 @@ class Roborama25ControllerNode(Node):
             next_state = "findCan"
             return next_state
         
-        # TODO: Needs a time out
+        
         if dist <= distCanDet :
             """
             Close enough to the can to grab it
@@ -1259,17 +1281,18 @@ class Roborama25ControllerNode(Node):
             distMinLminusR = distMinL - distMinR
             if Lnum == 0 and Rnum == 0 :
                 next_state = "findCan"
+                self.get_logger().info(f"run_approachCan: can not detected on TOF sensors")
             # elif Lnum > Rnum :        
             #     msg.angular.z = 0.1 #0.05   
             # elif Rnum > Lnum :    
             #     msg.angular.z = -0.1 #-0.05
-            # elif distMinL < distMinR :        
-            elif distMinLminusR < 0.05:        
-                msg.angular.z = 0.05 #0.05   
-            # elif distMinR < distMinL :    
-            elif distMinLminusR > 0.05 :    
-                msg.angular.z = -0.05 #-0.05
-            self.get_logger().info(f"run_approachCan: rotating to detect the can {dist=:.3f} {distMin=:.3f} {distMinL=:.3f} {distMinR=:.3f} {Lnum=} {Rnum=} {msg=}")
+            else :        
+                if distMinLminusR < 0.05:        
+                    msg.angular.z = 0.05 #0.05   
+                elif distMinLminusR > 0.05 :    
+                    msg.angular.z = -0.05 #-0.05
+                if msg.angular.z != 0 :
+                    self.get_logger().info(f"run_approachCan: rotating to detect the can {dist=:.3f} {distMin=:.3f} {distMinL=:.3f} {distMinR=:.3f} {Lnum=} {Rnum=} {msg=}")
                 
         elif not math.isinf(dist) : # < 0.65: # arbitrary 0.65
             """
