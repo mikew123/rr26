@@ -1169,7 +1169,7 @@ class Roborama25ControllerNode(Node):
         # Check if the can transform is detected, discard pose
         tf_OK = self.getCanTFOK()
         if not tf_OK :
-            tf_OK = self.rotateCanDet(2*math.pi) 
+            tf_OK = self.rotateCanDet(2*math.pi, 0.25) 
         
         # Make sure can is still detected
         tf_OK = self.getCanTFOK()
@@ -1177,7 +1177,8 @@ class Roborama25ControllerNode(Node):
         self.findCanCnt +=1
         if tf_OK : 
             next_state = "gotoCanLocation"
-        elif self.findCanCnt >= 2 :
+        # elif self.findCanCnt >= 2 :
+        elif self.findCanCnt >= 1 :
             self.get_logger().info(f"run_findCan: Failed to find cangoto new location {self.findCanCnt=}")
             next_state = "gotoNewLocation"
 
