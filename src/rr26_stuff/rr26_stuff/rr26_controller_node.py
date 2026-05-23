@@ -24,6 +24,7 @@ import time
 
 from rclpy.node import Node
 from functools import partial
+from copy import deepcopy
 
 from nav_msgs.msg import OccupancyGrid
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
@@ -1018,6 +1019,12 @@ class Roborama25ControllerNode(Node):
         Check if can is close enough to be detected with tof sensors
         Returns True if can signiture is detected 
         """
+        
+        tofL5L_pcd = deepcopy(self.tofL5L_pcd)
+        tofL5R_pcd = deepcopy(self.tofL5R_pcd)
+        if tofL5L_pcd==None or tofL5R_pcd==None :
+            return False
+
         canDet:bool = False
 
         lidarDistToFront = 0.120
@@ -1029,12 +1036,12 @@ class Roborama25ControllerNode(Node):
         l4NumMax = 9
 
         # get the minimum distance from the sensors
-        distMinL = min(self.tofL5L_pcd)
-        distMinR = min(self.tofL5R_pcd)
+        distMinL = min(tofL5L_pcd)
+        distMinR = min(tofL5R_pcd)
         distMin  = min(distMinL, distMinR, dist)
-        for d in self.tofL5L_pcd :
+        for d in tofL5L_pcd :
             if d<(distMin+0.07) : Lnum += 1
-        for d in self.tofL5R_pcd :
+        for d in tofL5R_pcd :
             if d<(distMin+0.07) : Rnum += 1
 
         distLim = distMin + distCanDet
@@ -1252,8 +1259,11 @@ class Roborama25ControllerNode(Node):
         canThetaR = 2*math.atan2(self.canRadius,distMinR) 
         canPixNumR = canThetaR/pixTheta
 
+        notCan = False
+
         if (Lnum > (1.5*canPixNumL)) or (Rnum > (1.5*canPixNumR)) or ((dist > (2*distCanDet)) and (Lnum < (0.5*canPixNumL)) and (Rnum < (0.5*canPixNumR))) :
             self.get_logger().info(f"run_approachCan: close object is not a can  {dist=:.3f} {distMin=:.3f} {distMinL=:.3f} {distMinR=:.3f} {Lnum=} {Rnum=} {canPixNumL=} {canPixNumR=}")
+            notCan = False
             # next_state = "findCan"
             # return next_state
 
@@ -1266,14 +1276,14 @@ class Roborama25ControllerNode(Node):
             return next_state
         
         
-        if dist <= distCanDet :
+        if (not notCan) and (dist <= distCanDet) :
             """
             Close enough to the can to grab it
             """
             self.get_logger().info(f"run_approachCan: at the can {dist=:.3f} {distMin=:.3f} {distMinL=:.3f} {distMinR=:.3f} {Lnum=} {Rnum=} {msg=}")
             next_state = "grabCan"
         
-        elif math.isinf(dist) or distMinL==1000.0 or distMinR==1000.0 : # == 0.0 :
+        elif notCan or math.isinf(dist) or distMinL==1000.0 or distMinR==1000.0 : # == 0.0 :
             """
             Can is close but not detected by the narrow FOV of the front sensor
             Use the L5 distances from sensors to rotate to the can
@@ -1294,7 +1304,7 @@ class Roborama25ControllerNode(Node):
                 if msg.angular.z != 0 :
                     self.get_logger().info(f"run_approachCan: rotating to detect the can {dist=:.3f} {distMin=:.3f} {distMinL=:.3f} {distMinR=:.3f} {Lnum=} {Rnum=} {msg=}")
                 
-        elif not math.isinf(dist) : # < 0.65: # arbitrary 0.65
+        elif (not notCan) and (not math.isinf(dist)) : # < 0.65: # arbitrary 0.65
             """
             Move to approach the can
             Rotate Left when number of L data points > R data points
@@ -1340,9 +1350,17 @@ class Roborama25ControllerNode(Node):
     def run_gotoGoalOpening(self, stateNum:Int32) ->str:
         """
         Go to the Goal opening location
+        Abort if can is not in the catch area
         Returns next state string
         """
         next_state = "gotoGoalOpening"
+
+        distCanDet = 0.06
+        lidarDistToFront = 0.130
+        dist = self.front_range - lidarDistToFront
+        if dist>distCanDet :
+            self.get_logger().info(f"run_gotoGoalOpening: can is not in catch {dist=}")
+            next_state = "findCan"
 
         self.nav.clearAllCostmaps() 
         # self.gotoXY(2.0,0,30, obstacle_layer_enabled=True)
@@ -1650,6 +1668,9 @@ class Roborama25ControllerNode(Node):
         make a static tf using the current tf values
         """
         tf_OK,pose = self.getOdomPose()
+        
+        if pose==None:
+            return
         
         x=pose.pose.position.x
         y=pose.pose.position.y

@@ -30,7 +30,8 @@ class Roborama25FrontSensorsNode(Node):
     sigmVal:int = 6 # TOF8x8 sigma value default = 10 (< is good)
 
     #serial_port = "/dev/ttyACM2"
-    serial_port:str = "/dev/serial/by-id/usb-Waveshare_RP2040_Zero_E6625C05E790A423-if00"
+    # serial_port:str = "/dev/serial/by-id/usb-Waveshare_RP2040_Zero_E6625C05E790A423-if00"
+    serial_port:str = "/dev/serial/by-id/usb-Waveshare_RP2040_Zero_455330657885940A-if00"
 
     movingBackward:bool = True # True if moving backwards, used for rear sensor scan messages
     
