@@ -111,7 +111,7 @@ class BarrelRace() :
         angZ:float = 0.0
 
         # nominal linear and angular velocity when going around barrels
-        linX0: float    = 0.30
+        linX0: float    = 0.35
         angZ0: float    = 3*linX0
         angScale: float = 10*linX0
 
@@ -177,7 +177,7 @@ class BarrelRace() :
                 # Drive past start line
                 linX = linX0
                 angZ = 0.0
-                dist = self.ft2m(2.5)
+                dist = self.ft2m(3.5)
                 timeout = dist/linX
 
                 if elapsed_time>=timeout:
@@ -191,7 +191,7 @@ class BarrelRace() :
                 targetAngle = math.radians(65.0)
                 dArc = 0.75 # arc radius in ft
                 # set timeout
-                dMax = 2.0 # travel meters before timeout
+                dMax = 3.0 # travel meters before timeout
                 tMax = dMax/linX
 
                 if elapsed_time>=tMax :
@@ -213,7 +213,7 @@ class BarrelRace() :
                 # Drive to get close to barrel1 using camera blob detection
                 linX = linX0
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
@@ -261,7 +261,7 @@ class BarrelRace() :
                 linX = linX0
                 angZ = angZ0
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 # Qualify barrels loosely
@@ -298,7 +298,7 @@ class BarrelRace() :
                 angZ = angZ0
                 angExit = -90
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 a = 0.0
@@ -355,7 +355,7 @@ class BarrelRace() :
                 # Drive toward barrel 2 using camera blob detection, stop at distance
                 linX = linX0
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
@@ -402,7 +402,7 @@ class BarrelRace() :
                 linX = linX0
                 angZ = -angZ0
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 barrel = self.lidarDistToBarrel(barrels, dmax=1.5, amin=-135, amax=90)
@@ -441,7 +441,7 @@ class BarrelRace() :
                 angZ = -angZ0
                 angExit = 30.0
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 # tighter barrel detect assume close to the side
@@ -498,7 +498,7 @@ class BarrelRace() :
                 # Drive toward barrel 3 using camera blob detection, stop at distance
                 linX = linX0
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 (tf_OK, a, d) = self.getAngleDist2CanBlob()
@@ -547,7 +547,7 @@ class BarrelRace() :
                 linX = linX0
                 angZ = -angZ0
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 barrel = self.lidarDistToBarrel(barrels, dmax=1.5, amin=-135, amax=90)
@@ -585,7 +585,7 @@ class BarrelRace() :
                 # exit angle should be 180 but there is a discontinuity at 180
                 angExit = 175 # needs more overshoot space for higher speeds
                 # set timeout
-                dMax = 2.0
+                dMax = 3.0
                 tMax = dMax/linX
 
                 # tighter barrel detect assume close to the side
@@ -634,7 +634,7 @@ class BarrelRace() :
                 # Go to the begin point map x=0, y=0, heading 180 deg
                 linX = linX0
                 # set timeout
-                dMax = 2.0
+                dMax = 4.0
                 tMax = dMax/linX
 
                 if elapsed_time >= tMax :

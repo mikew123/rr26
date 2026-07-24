@@ -98,7 +98,7 @@ class Roborama25ControllerNode(Node):
     canRadius = 0.065/2
 
     # DPRG QT arena info in feet
-    d:float = 12.0
+    d:float = 12.5
     t:float = 1.25 # put in center of target zones
     lengthQuickTrip:dict = {
         "home" : 8*ft2m, 
@@ -107,7 +107,7 @@ class Roborama25ControllerNode(Node):
     
     # DPRG 4C arena info in feet
     # needs to be updated on site for actual size 8-15 ft sq
-    d = 9.0 # dist between square corner markers
+    d = 9.5 # dist between square corner markers
     t = 1.5 # distance from actual corner of square, center of 3ft clear zone
     size4corner:dict = {
         "home" : 6*ft2m, # actual robot turn points outside 4 corners
@@ -886,11 +886,15 @@ class Roborama25ControllerNode(Node):
         tf_OK = False
         while tf_OK == False and cnt < nCnt :
             try:
+                if self.gotoBarrelRace :
+                    t = rclpy.time.Time() # default 0
+                else :
+                    t = self.get_clock().now().to_msg()
+                
                 tf = self.tf_buffer.lookup_transform (
                     'map',
                     target_frame,
-                    self.get_clock().now().to_msg(),
-                    # rclpy.time.Time(), # default 0
+                    t,
                     timeout=rclpy.duration.Duration(seconds=0.5)
                     )
                 tf_OK = True
@@ -1314,6 +1318,8 @@ class Roborama25ControllerNode(Node):
             """
             if (not math.isinf(dist) and (math.isinf(distMin)) or (math.fabs(dist - distMin) < 0.15)) :
                 msg.linear.x = 0.1
+                if distMin<0.25 and distMin>0.08:
+                    msg.linear.x *= distMin/0.25
             # if Lnum > Rnum :
             #     msg.angular.z = 0.1 #0.05
             # elif Rnum > Lnum :
@@ -1361,8 +1367,10 @@ class Roborama25ControllerNode(Node):
         dist = self.front_range - lidarDistToFront
         if dist>distCanDet :
             self.get_logger().info(f"run_gotoGoalOpening: can is not in catch {dist=}")
+            self.clawCmdOpen()
             next_state = "findCan"
-
+            return next_state
+        
         self.nav.clearAllCostmaps() 
         # self.gotoXY(2.0,0,30, obstacle_layer_enabled=True)
         
@@ -1595,7 +1603,7 @@ class Roborama25ControllerNode(Node):
         """
         sends (publish) a message to close the claw
         """
-        self.clawCmd(93, 100)
+        self.clawCmd(100, 100)
         
     def clawCmd(self, pct: int, msec: int) -> None:
         """
